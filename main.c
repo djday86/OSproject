@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <math.h>
+
 
 #define DRIVE_SIZE 0x170
 #define PAGE_SIZE 0x178
