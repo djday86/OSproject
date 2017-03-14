@@ -7,9 +7,9 @@
 #include <fcntl.h>
 
 
-#define DRIVE_SIZE 0x170
-#define PAGE_SIZE 0x178
-#define MBR_SIZE 448
+#define DRIVE_SIZE_LOC 0x170  //drive size location address
+#define PAGE_SIZE_LOC 0x178 //page size location address
+#define MBR_SIZE 448 //Size of MBR
 
 u64 get_drive_size(u32 fd);
 u32 get_page_size(u32 fd);
@@ -51,7 +51,7 @@ u64 get_drive_size(u32 fd) {
 	u8 HDDsize[8] = {0};
 	u64 size = 0;
 
-	if(lseek(fd,DRIVE_SIZE,SEEK_SET) == -1) return -1;
+	if(lseek(fd,DRIVE_SIZE_LOC,SEEK_SET) == -1) return -1;
 	if(read(fd,HDDsize,8) == -1) return -1;
 	
 	for(u32 i=sizeof(HDDsize);i>0;i--) {
@@ -68,7 +68,7 @@ u32 get_page_size(u32 fd) {
 	u8 pageSize[4] = {0};
 	u32 size = 0;
 
-	if(lseek(fd,PAGE_SIZE,SEEK_SET) == -1) return -1;
+	if(lseek(fd,PAGE_SIZE_LOC,SEEK_SET) == -1) return -1;
 	if(read(fd,pageSize,4) == -1) return -1;
 	
 	for(u32 i=sizeof(pageSize);i>0;i--) {
