@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+u32 i;
 
 typedef struct { 
 	
@@ -25,21 +26,31 @@ typedef struct {
 	u32 total_blocks;
 	u32 blocks_allocated;
 	u8 unused_info[0x78];
+	u32 cursor;
+	u32* map;
 
 } VDI_header;
+
+u32 read_VDI_map(u32 fd, VDI_header disk_info);
 	
 
 int main(int argc, char *argv[]) {
 
 	u32 fd =0;
 	VDI_header disk_info;
+	disk_info.cursor = 0;
 
 	printf("Name of file: %s\n", argv[1]);
+
+	//lseek(fd,OFFSET_BLOCKS, SEEK_SET)
+	//lseek(fd,LOCATION, SEEK_SET)
+	//read(fd, buffer, size) make sure buffer reading into has enough bytes to store size.
 
 	fd = open(argv[1], O_RDONLY);
 
 	if(lseek(fd,0,SEEK_SET) == -1) return EXIT_FAILURE;
 	if(read(fd,&disk_info,sizeof(disk_info)) == -1) return EXIT_FAILURE;
+	if(read_VDI_map(fd,disk_info) == -1) return EXIT_FAILURE;
 
 	if(disk_info.drive_type == 1) printf("File type: Dynamic\n");
 	else printf("File type: Static\n");
@@ -54,13 +65,26 @@ int main(int argc, char *argv[]) {
 	printf("Disk block size: %i bytes.\n", disk_info.block_size);
 	printf("Total # of blocks: %i.\n",disk_info.total_blocks);
 	printf("Total # of blocks allocated: %i.\n",disk_info.blocks_allocated);
-	
+
+	printf("Block Map: \n");
+	for(i=0;i<disk_info.blocks_allocated;i++) printf("Block #%i: %i \n",i,disk_info.map[i]);
+
+	free(disk_info.map);
 	if(close(fd) == -1) {
 		printf("Error.\n");
 		return EXIT_FAILURE;
 	}
 
 	return EXIT_SUCCESS;
+
+}
+
+u32 read_VDI_map(u32 fd, VDI_header disk_info) {
+
+	disk_info.map = (u32 *)malloc(4*(disk_info.blocks_allocated));
+
+	if(lseek(fd,disk_info.offset_blocks,SEEK_SET) == -1) return -1;
+	if(read(fd, disk_info.map, disk_info.blocks_allocated) == -1) return -1;
 
 }
 
