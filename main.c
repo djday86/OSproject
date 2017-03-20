@@ -31,7 +31,27 @@ typedef struct {
 
 } VDI_header;
 
+struct __attribute__((packed)) BootSector {
+  u8
+    unused0[0x1be];
+  PartitionEntry
+    partitionTable[4];
+  u16
+    magic;
+};
+
+struct PartitionEntry {
+  u8
+    unused0[4],
+    type,
+    unused1[3];
+  u32
+    firstSector,
+    nSectors;
+};
+
 u32 read_VDI_map(u32 fd, VDI_header disk_info);
+void get_partition_details(int *part_num partition_entry *data)
 	
 
 int main(int argc, char *argv[]) {
@@ -87,5 +107,29 @@ u32 read_VDI_map(u32 fd, VDI_header disk_info) {
 	if(read(fd, disk_info.map, disk_info.blocks_allocated) == -1) return -1;
 
 }
+
+void get_partition_details(int *part_num partition_entry *data){
+    
+    int part_num = 0;
+ 
+    lseek(fd, diskinfo.offsetblocks, SEEK_SET);
+    read(fd, &data, 512);
+    if(diskinfo.partition_table[0].type == 0x38)
+        return;
+    else if(diskinfo.partition_table[1].type == 0x38){
+         part_num = 1;
+         return;
+        }
+    else if (diskinfo.partition_table[2].tyep == 0x38){
+        part_num = 2;
+        return;
+    }
+    else if(diskinfo.partition_table[3].type == 0x38) {
+        part_num = 3;
+        return;
+    }
+                
+}
+
 
 	
