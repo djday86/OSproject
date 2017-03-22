@@ -8,7 +8,7 @@
 
 u32 i;
 
-struct ext2_super_block {
+typedef struct super_block {
     u32   s_inodes_count;         /* Inodes count */
     u32   s_blocks_count;         /* Blocks count */
     u32   s_r_blocks_count;       /* Reserved blocks count */
@@ -37,6 +37,7 @@ struct ext2_super_block {
 }super_block;
 
 typedef struct {
+
     u32 bg_block_bitmap;
     u32 bg_inode_bitmap;
     u32 bg_inode_table;
@@ -47,6 +48,7 @@ typedef struct {
     u8 bg_reserved[4];
     
 } bg_descriptor_table;
+
 typedef struct { 
 	
 	u8 header[0x4b];
@@ -66,31 +68,28 @@ typedef struct {
 	u32 blocks_allocated;
 	u8 unused_info[0x78];
 	u32 cursor;
-	u32* map;
+	s32* map;
 
 } VDI_header;
 
-struct __attribute__((packed)) BootSector {
-  u8
-    unused0[0x1be];
-  PartitionEntry
-    partitionTable[4];
-  u16
-    magic;
+typedef struct {
+
+  u8 unused0[4], type, unused1[3];
+  u32 firstSector, nSectors;
+
+} PartitionEntry;
+
+typedef struct __attribute__((packed)) BootSector {
+
+	u8 unused0[0x1be];
+	PartitionEntry partitionTable[4];
+	u16 magic;
+
 };
 
-struct PartitionEntry {
-  u8
-    unused0[4],
-    type,
-    unused1[3];
-  u32
-    firstSector,
-    nSectors;
-};
 
-u32 read_VDI_map(u32 fd, VDI_header disk_info);
-void get_partition_details(int *part_num partition_entry *data)
+u32 read_VDI_map(u32 fd, VDI_header *disk_info);
+//void get_partition_details(int *part_num partition_entry *data);
 	
 
 int main(int argc, char *argv[]) {
@@ -109,7 +108,7 @@ int main(int argc, char *argv[]) {
 
 	if(lseek(fd,0,SEEK_SET) == -1) return EXIT_FAILURE;
 	if(read(fd,&disk_info,sizeof(disk_info)) == -1) return EXIT_FAILURE;
-	if(read_VDI_map(fd,disk_info) == -1) return EXIT_FAILURE;
+	if(read_VDI_map(fd,&disk_info) == -1) return EXIT_FAILURE;
 
 	if(disk_info.drive_type == 1) printf("File type: Dynamic\n");
 	else printf("File type: Static\n");
@@ -138,15 +137,19 @@ int main(int argc, char *argv[]) {
 
 }
 
-u32 read_VDI_map(u32 fd, VDI_header disk_info) {
+u32 read_VDI_map(u32 fd, VDI_header *disk_info) {
 
-	disk_info.map = (u32 *)malloc(4*(disk_info.blocks_allocated));
+	disk_info->map = (u32 *)malloc(4*(disk_info->blocks_allocated));
 
-	if(lseek(fd,disk_info.offset_blocks,SEEK_SET) == -1) return -1;
-	if(read(fd, disk_info.map, disk_info.blocks_allocated) == -1) return -1;
+	printf("MAP: %p\n", disk_info->map);
+	fflush(stdout);
+	if(lseek(fd,disk_info->offset_blocks,SEEK_SET) == -1) return -1;
+	if(read(fd, disk_info->map, 4* disk_info->blocks_allocated) == -1) return -1;
+
+	
 
 }
-
+/*
 void get_partition_details(int *part_num partition_entry *data){
     
     int part_num = 0;
@@ -177,9 +180,9 @@ void get_super_block(super_block *main_super_block){
 
 void get_bg_descriptor_table(bg_descriptor_table *bg_data) {
     
-    lseek(fd, disk_info.offsetdata +)
+    lseek(fd, disk_info.offsetdata,SEEK_SET);
 }
 
 void fetch_block( void *buf, int block_num){
     
-}
+}*/
