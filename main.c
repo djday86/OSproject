@@ -8,6 +8,7 @@
 
 u32 i;
 
+
 typedef struct super_block {
     u32   s_inodes_count;         /* Inodes count */
     u32   s_blocks_count;         /* Blocks count */
@@ -89,13 +90,19 @@ typedef struct __attribute__((packed)) BootSector {
 
 
 u32 read_VDI_map(u32 fd, VDI_header *disk_info);
-//void get_partition_details(int *part_num partition_entry *data);
-	
+int get_partition_details(u32 fd, int *part_num, BootSector *data);
+void get_super_block(u32 fd, super_block *main_super_block);
+void get_bg_descriptor_table(u32 fd, bg_descriptor_table *bg_data);
+void fetch_block( u32 fd, void *buf, int block_group, int block_num);
+
+super_block main_super_block;
+VDI_header disk_info;
 
 int main(int argc, char *argv[]) {
 
-	u32 fd =0;
-	VDI_header disk_info;
+	u32 fd = 0;
+	
+        
 	disk_info.cursor = 0;
 
 	printf("Name of file: %s\n", argv[1]);
@@ -134,55 +141,52 @@ int main(int argc, char *argv[]) {
 	}
 
 	return EXIT_SUCCESS;
+}
+
+u32 read_VDI_map(u32 fd, VDI_header disk_info) {
+
+	disk_info.map = (u32 *)malloc(4*(disk_info.blocks_allocated));
+
+	if(lseek(fd,disk_info.offset_blocks,SEEK_SET) == -1) return -1;
+	if(read(fd, disk_info.map, disk_info.blocks_allocated) == -1) return -1;
 
 }
 
-u32 read_VDI_map(u32 fd, VDI_header *disk_info) {
-
-	disk_info->map = (u32 *)malloc(4*(disk_info->blocks_allocated));
-
-	printf("MAP: %p\n", disk_info->map);
-	fflush(stdout);
-	if(lseek(fd,disk_info->offset_blocks,SEEK_SET) == -1) return -1;
-	if(read(fd, disk_info->map, 4* disk_info->blocks_allocated) == -1) return -1;
-
-	
-
-}
-/*
-void get_partition_details(int *part_num partition_entry *data){
+int get_partition_details(u32 fd, int *part_num, BootSector *data){
     
-    int part_num = 0;
- 
-    lseek(fd, diskinfo.offsetblocks, SEEK_SET);
-    read(fd, &data, 512);
-    if(diskinfo.partition_table[0].type == 0x38)
-        return;
-    else if(diskinfo.partition_table[1].type == 0x38){
+    
+    lseek(fd, disk_info.offset_blocks, SEEK_SET);
+    read(fd, &data, sizeof(data));
+    if(data.partitionTable[0].type == 0x38)
+        return -1;
+    else if(data.partitionTable[1].type == 0x38){
          part_num = 1;
-         return;
+         return -1;
         }
-    else if (diskinfo.partition_table[2].type == 0x38){
+    else if (data.partitionTable[2].type == 0x38){
         part_num = 2;
-        return;
+        return -1;
     }
-    else if(diskinfo.partition_table[3].type == 0x38) {
+    else if(data.partitionTable[3].type == 0x38) {
         part_num = 3;
-        return;
+        return -1;
     }
                 
 }
 
-void get_super_block(super_block *main_super_block){
-    lseek(fd, disk_info offsetdata + 1024, SEEK_SET);
-    read(fd, &main_super_block, 1024)
+void get_super_block(u32 fd, super_block *main_super_block){
+    lseek(fd, disk_info.offset_data + 1024, SEEK_SET);
+    read(fd, &main_super_block, 1024);
 }
 
-void get_bg_descriptor_table(bg_descriptor_table *bg_data) {
+void get_bg_descriptor_table(u32 fd, int bg_number, bg_descriptor_table *bg_data) {
     
-    lseek(fd, disk_info.offsetdata,SEEK_SET);
+    lseek(fd, disk_info.offset_data + 1024 +   , SEEK_SET);
+    read(fd, &bg_data, sizeof(bg_descriptor_table));
 }
 
-void fetch_block( void *buf, int block_num){
+void fetch_block( u32 fd, void *buf, int block_group, int block_num){
+    lseek(fd, disk_info.offset_data + 1024 + main_super_block.s_blocks_per_group * block_group + main_super_block.s_log_block_size * block_num,SEEK_SET);
+    read(fd, &buf, main_super_block.s_log_block_size);
     
-}*/
+}
