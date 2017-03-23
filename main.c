@@ -34,7 +34,8 @@ typedef struct super_block {
     u32   s_rev_level;            /* Revision level */
     u16   s_def_resuid;           /* Default uid for reserved blocks */
     u16   s_def_resgid;           /* Default gid for reserved blocks */
-}super_block;
+
+} super_block;
 
 typedef struct {
 
@@ -74,8 +75,13 @@ typedef struct {
 
 typedef struct {
 
-  u8 unused0[4], type, unused1[3];
-  u32 firstSector, nSectors;
+	u8 
+	unused0[4], 
+	type, 
+	unused1[3];
+
+	u32
+	firstSector, nSectors;
 
 } PartitionEntry;
 
@@ -85,7 +91,7 @@ typedef struct __attribute__((packed)) BootSector {
 	PartitionEntry partitionTable[4];
 	u16 magic;
 
-};
+} BootSector;
 
 
 u32 read_VDI_map(u32 fd, VDI_header *disk_info);
@@ -112,7 +118,6 @@ int main(int argc, char *argv[]) {
 
 	if(disk_info.drive_type == 1) printf("File type: Dynamic\n");
 	else printf("File type: Static\n");
-
 	printf("Offset blocks: %i bytes.\n", disk_info.offset_blocks);
 	printf("Offset data: %i bytes.\n", disk_info.offset_data);
 	printf("Cylinders: %i.\n", disk_info.cylinders);
@@ -124,10 +129,8 @@ int main(int argc, char *argv[]) {
 	printf("Total # of blocks: %i.\n",disk_info.total_blocks);
 	printf("Total # of blocks allocated: %i.\n",disk_info.blocks_allocated);
 
-	printf("Block Map: \n");
-	for(i=0;i<disk_info.blocks_allocated;i++) printf("Block #%i: %i \n",i,disk_info.map[i]);
-
 	free(disk_info.map);
+
 	if(close(fd) == -1) {
 		printf("Error.\n");
 		return EXIT_FAILURE;
@@ -141,51 +144,56 @@ u32 read_VDI_map(u32 fd, VDI_header *disk_info) {
 
 	disk_info->map = (u32 *)malloc(4*(disk_info->blocks_allocated));
 
-	printf("MAP: %p\n", disk_info->map);
-	fflush(stdout);
+	if(disk_info->map == NULL) {
+
+		printf("MEMORY FAILURE: MEMORY NOT ALLOCATED");
+		return -1;
+	}
+
 	if(lseek(fd,disk_info->offset_blocks,SEEK_SET) == -1) return -1;
 	if(read(fd, disk_info->map, 4* disk_info->blocks_allocated) == -1) return -1;
-
-	
-
 }
 
-int get_partition_details(u32 fd, int *part_num, BootSector *data){
+u32 get_partition_details(u32 fd, VDI_header disk_info, int *part_num, BootSector *data){
     
     
-    lseek(fd, disk_info.offset_blocks, SEEK_SET);
-    read(fd, &data, sizeof(data));
-    if(data.partitionTable[0].type == 0x38)
+    if(lseek(fd, disk_info.offset_blocks, SEEK_SET) == -1) return -1;
+    if(read(fd, &data, sizeof(data)) == -1) return -1;
+    if(data->partitionTable[0].type == 0x38)
         return -1;
-    else if(data.partitionTable[1].type == 0x38){
+    else if(data->partitionTable[1].type == 0x38){
          part_num = 1;
          return -1;
         }
-    else if (data.partitionTable[2].type == 0x38){
+    else if (data->partitionTable[2].type == 0x38){
         part_num = 2;
         return -1;
     }
-    else if(data.partitionTable[3].type == 0x38) {
+    else if(data->partitionTable[3].type == 0x38) {
         part_num = 3;
         return -1;
     }
                 
 }
 
-void get_super_block(u32 fd, super_block *main_super_block){
-    lseek(fd, disk_info.offset_data + 1024, SEEK_SET);
-    read(fd, &main_super_block, 1024);
+u32 get_super_block(u32 fd, super_block *main_super_block, VDI_header disk_info) {
+
+    if(lseek(fd, disk_info.offset_data + 1024, SEEK_SET) == -1) return -1;
+    if(read(fd, &main_super_block, 1024) == -1) return -1;
+
 }
 
-void get_bg_descriptor_table(u32 fd, int bg_number, bg_descriptor_table *bg_data) {
+u32 get_bg_descriptor_table(u32 fd, int bg_number, super_block main_super_block, bg_descriptor_table *bg_data, VDI_header disk_info) {
     
-    lseek(fd, disk_info.offset_data + 1024 + bg_number * main_super_block.s_blocks_per_group * main_super_block.s_log_block_size + main_super_block.s_log_block_size , SEEK_SET);
-    read(fd, &bg_data, sizeof(bg_descriptor_table));
+    if(lseek(fd, disk_info.offset_data + 1024 + bg_number * main_super_block.s_blocks_per_group * main_super_block.s_log_block_size + 			main_super_block.s_log_block_size , SEEK_SET) == -1) return -1;
+    if(read(fd, &bg_data, sizeof(bg_descriptor_table)) == -1) return -1;
+
 }
 
-void fetch_block( u32 fd, void *buf, int block_group, int block_num) {
+u32 fetch_block( u32 fd, void *buf, int block_group, int block_num, VDI_header disk_info, super_block main_super_block) {
 
-    lseek(fd, disk_info.offset_data + 1024 + main_super_block.s_blocks_per_group * block_group * main_super_block.s_log_block_size + 			main_super_block.s_log_block_size * (block_num - 1),SEEK_SET);
-    read(fd, &buf, main_super_block.s_log_block_size);
+    if(lseek(fd, disk_info.offset_data + 1024 + main_super_block.s_blocks_per_group * block_group * main_super_block.s_log_block_size + 			main_super_block.s_log_block_size * (block_num - 1),SEEK_SET) == -1) return -1;
+
+    if(read(fd, &buf, main_super_block.s_log_block_size) == -1) return -1;
     
 }
