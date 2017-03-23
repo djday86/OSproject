@@ -8,7 +8,8 @@
 
 u32 i;
 
-typedef struct super_block {
+typedef struct {
+
     u32   s_inodes_count;         /* Inodes count */
     u32   s_blocks_count;         /* Blocks count */
     u32   s_r_blocks_count;       /* Reserved blocks count */
@@ -69,7 +70,7 @@ typedef struct {
 	u32 blocks_allocated;
 	u8 unused_info[0x78];
 	u32 cursor;
-	s32* map;
+	s32 *map;
 
 } VDI_header;
 
@@ -95,13 +96,18 @@ typedef struct __attribute__((packed)) BootSector {
 
 
 u32 read_VDI_map(u32 fd, VDI_header *disk_info);
-//void get_partition_details(int *part_num partition_entry *data);
+u32 get_partition_details(u32 fd, VDI_header disk_info, int *part_num, BootSector *data);
+u32 get_super_block(u32 fd, super_block *main_super_block, VDI_header disk_info);
+u32 VDI_translate(u32 desired_byte, VDI_header disk_info);
 	
 
 int main(int argc, char *argv[]) {
 
 	u32 fd =0;
 	VDI_header disk_info;
+	super_block main_super_block;
+	BootSector boot_sector;
+
 	disk_info.cursor = 0;
 
 	printf("Name of file: %s\n", argv[1]);
@@ -115,6 +121,13 @@ int main(int argc, char *argv[]) {
 	if(lseek(fd,0,SEEK_SET) == -1) return EXIT_FAILURE;
 	if(read(fd,&disk_info,sizeof(disk_info)) == -1) return EXIT_FAILURE;
 	if(read_VDI_map(fd,&disk_info) == -1) return EXIT_FAILURE;
+	//if(get_super_block(fd, &main_super_block, &disk_info) == -1) return EXIT_FAILURE;
+	if(lseek(fd, VDI_translate(0, disk_info), SEEK_SET) == -1) return EXIT_FAILURE;
+	if(read(fd, &boot_sector, 512) == -1) return EXIT_FAILURE;	
+
+	if(lseek(fd, VDI_translate(1024, disk_info), SEEK_SET) == -1) return EXIT_FAILURE;
+    	if(read(fd, &main_super_block, 84) == -1) return EXIT_FAILURE;
+	
 
 	if(disk_info.drive_type == 1) printf("File type: Dynamic\n");
 	else printf("File type: Static\n");
@@ -128,6 +141,9 @@ int main(int argc, char *argv[]) {
 	printf("Disk block size: %i bytes.\n", disk_info.block_size);
 	printf("Total # of blocks: %i.\n",disk_info.total_blocks);
 	printf("Total # of blocks allocated: %i.\n",disk_info.blocks_allocated);
+
+	printf("INFO FROM SUPERBLOCK\n");
+	printf("%i",boot_sector.magic);
 
 	free(disk_info.map);
 
@@ -154,13 +170,28 @@ u32 read_VDI_map(u32 fd, VDI_header *disk_info) {
 	if(read(fd, disk_info->map, 4* disk_info->blocks_allocated) == -1) return -1;
 }
 
+u32 VDI_translate(u32 desired_byte, VDI_header disk_info) {
+
+	u32 page;
+	u32 offset;
+	u32 loc;
+	u32 frame;
+
+	page = (desired_byte / disk_info.offset_blocks);
+	offset = (desired_byte % disk_info.offset_blocks);
+	frame = disk_info.map[page];
+	loc = disk_info.offset_data + (frame * disk_info.offset_blocks) + offset;
+
+	return loc; 
+	
+}
+
 u32 get_partition_details(u32 fd, VDI_header disk_info, int *part_num, BootSector *data){
     
     
     if(lseek(fd, disk_info.offset_blocks, SEEK_SET) == -1) return -1;
     if(read(fd, &data, sizeof(data)) == -1) return -1;
-    if(data->partitionTable[0].type == 0x38)
-        return -1;
+    if(data->partitionTable[0].type == 0x38) return -1;
     else if(data->partitionTable[1].type == 0x38){
          part_num = 1;
          return -1;
@@ -178,8 +209,8 @@ u32 get_partition_details(u32 fd, VDI_header disk_info, int *part_num, BootSecto
 
 u32 get_super_block(u32 fd, super_block *main_super_block, VDI_header disk_info) {
 
-    if(lseek(fd, disk_info.offset_data + 1024, SEEK_SET) == -1) return -1;
-    if(read(fd, &main_super_block, 1024) == -1) return -1;
+    if(lseek(fd, ((disk_info.map[0] + 1) * disk_info.offset_blocks) + 1024, SEEK_SET) == -1) return -1;
+    if(read(fd, &main_super_block, 84) == -1) return -1;
 
 }
 
