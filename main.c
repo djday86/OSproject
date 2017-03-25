@@ -10,31 +10,32 @@
 u32 i;
 
 typedef struct {
-	int	s_inodes_count;		/* Inodes count */
-	int	s_blocks_count;		/* Blocks count */
-	int	s_r_blocks_count;	/* Reserved blocks count */
-	int	s_free_blocks_count;	/* Free blocks count */
-	int	s_free_inodes_count;	/* Free inodes count */
-	int	s_first_data_block;	/* First Data Block */
-	int	s_log_block_size;	/* Block size */
-	int	s_log_frag_size;	/* Fragment size */
-	int	s_blocks_per_group;	/* # Blocks per group */
-	int	s_frags_per_group;	/* # Fragments per group */
-	int	s_inodes_per_group;	/* # Inodes per group */
-	int	s_mtime;		/* Mount time */
-	int	s_wtime;		/* Write time */
-	short int	s_mnt_count;		/* Mount count */
-	short int	s_max_mnt_count;	/* Maximal mount count */
-	short int	s_magic;		/* Magic signature */
-	short int	s_state;		/* File system state */
-	short int	s_errors;		/* Behaviour when detecting errors */
-	short int	s_minor_rev_level; 	/* minor revision level */
-	int	s_lastcheck;		/* time of last check */
-	int	s_checkinterval;	/* max. time between checks */
-	int	s_creator_os;		/* OS */
-	int	s_rev_level;		/* Revision level */
-	short int	s_def_resuid;		/* Default uid for reserved blocks */
-	short int	s_def_resgid;		/* Default gid for reserved blocks */
+
+	s32	s_inodes_count;		/* Inodes count */
+	s32	s_blocks_count;		/* Blocks count */
+	s32	s_r_blocks_count;	/* Reserved blocks count */
+	s32	s_free_blocks_count;	/* Free blocks count */
+	s32	s_free_inodes_count;	/* Free inodes count */
+	s32	s_first_data_block;	/* First Data Block */
+	s32	s_log_block_size;	/* Block size */
+	s32	s_log_frag_size;	/* Fragment size */
+	s32	s_blocks_per_group;	/* # Blocks per group */
+	s32	s_frags_per_group;	/* # Fragments per group */
+	s32	s_inodes_per_group;	/* # Inodes per group */
+	s32	s_mtime;		/* Mount time */
+	s32	s_wtime;		/* Write time */
+	u16	s_mnt_count;		/* Mount count */
+	u16	s_max_mnt_count;	/* Maximal mount count */
+	u16	s_magic;		/* Magic signature */
+	u16	s_state;		/* File system state */
+	u16	s_errors;		/* Behaviour when detecting errors */
+	u16	s_minor_rev_level; 	/* minor revision level */
+	s32	s_lastcheck;		/* time of last check */
+	s32	s_checks32erval;	/* max. time between checks */
+	s32	s_creator_os;		/* OS */
+	s32	s_rev_level;		/* Revision level */
+	u16	s_def_resuid;		/* Default uid for reserved blocks */
+	u16	s_def_resgid;		/* Default gid for reserved blocks */
 	/*
 	 * These fields are for EXT2_DYNAMIC_REV superblocks only.
 	 *
@@ -48,49 +49,50 @@ typedef struct {
 	 * feature set, it must abort and not try to meddle with
 	 * things it doesn't understand...
 	 */
-	int	s_first_ino; 		/* First non-reserved inode */
-	short int   s_inode_size; 		/* size of inode structure */
-	short int	s_block_group_nr; 	/* block group # of this superblock */
-	int	s_feature_compat; 	/* compatible feature set */
-	int	s_feature_incompat; 	/* incompatible feature set */
-	int	s_feature_ro_compat; 	/* readonly-compatible feature set */
-	unsigned char	s_uuid[16];		/* 128-bit uuid for volume */
-	char	s_volume_name[16]; 	/* volume name */
-	char	s_last_mounted[64]; 	/* directory where last mounted */
-	int	s_algorithm_usage_bitmap; /* For compression */
+	s32	s_first_ino; 		/* First non-reserved inode */
+	u16   s_inode_size; 		/* size of inode structure */
+	u16	s_block_group_nr; 	/* block group # of this superblock */
+	s32	s_feature_compat; 	/* compatible feature set */
+	s32	s_feature_incompat; 	/* incompatible feature set */
+	s32	s_feature_ro_compat; 	/* readonly-compatible feature set */
+	u8	s_uuid[16];		/* 128-bit uuid for volume */
+	s8	s_volume_name[16]; 	/* volume name */
+	s8	s_last_mounted[64]; 	/* directory where last mounted */
+	s32	s_algorithm_usage_bitmap; /* For compression */
 	/*
-	 * Performance hints.  Directory preallocation should only
+	 * Performance hs32s.  Directory preallocation should only
 	 * happen if the EXT2_COMPAT_PREALLOC flag is on.
 	 */
-	unsigned char	s_prealloc_blocks;	/* Nr of blocks to try to preallocate*/
-	unsigned char	s_prealloc_dir_blocks;	/* Nr to preallocate for dirs */
-	unsigned short int	s_padding1;
+	u8	s_prealloc_blocks;	/* Nr of blocks to try to preallocate*/
+	u8	s_prealloc_dir_blocks;	/* Nr to preallocate for dirs */
+	u32	s_padding1;
 	/*
 	 * Journaling support valid if EXT3_FEATURE_COMPAT_HAS_JOURNAL set.
 	 */
-	unsigned char	s_journal_uuid[16];	/* uuid of journal superblock */
-	unsigned int	s_journal_inum;		/* inode number of journal file */
-	unsigned int	s_journal_dev;		/* device number of journal file */
-	unsigned int	s_last_orphan;		/* start of list of inodes to delete */
-	unsigned int	s_hash_seed[4];		/* HTREE hash seed */
-	unsigned char	s_def_hash_version;	/* Default hash version to use */
-	unsigned char	s_reserved_char_pad;
-	unsigned short int	s_reserved_word_pad;
-	int	s_default_mount_opts;
- 	int	s_first_meta_bg; 	/* First metablock block group */
-	unsigned int	s_reserved[190];	/* Padding to the end of the block */
+	u8	s_journal_uuid[16];	/* uuid of journal superblock */
+	u32	s_journal_inum;		/* inode number of journal file */
+	u32	s_journal_dev;		/* device number of journal file */
+	u32	s_last_orphan;		/* start of list of inodes to delete */
+	u32	s_hash_seed[4];		/* HTREE hash seed */
+	u8	s_def_hash_version;	/* Default hash version to use */
+	u8	s_reserved_char_pad;
+	u32	s_reserved_word_pad;
+	s32	s_default_mount_opts;
+	s32	s_first_meta_bg; 	/* First metablock block group */
+	u32	s_reserved[190];	/* Padding to the end of the block */
+
 } ext2_super_block;
 
 typedef struct {
 
-    u32 bg_block_bitmap;
-    u32 bg_inode_bitmap;
-    u32 bg_inode_table;
-    u16 bg_free_blocks;
-    u16 bg_free_inodes;
-    u16 bg_used_dirs_count;
-    u16 bg_pad;
-    u8 bg_reserved[4];
+	u32 bg_block_bitmap;
+	u32 bg_inode_bitmap;
+	u32 bg_inode_table;
+	u16 bg_free_blocks;
+	u16 bg_free_inodes;
+	u16 bg_used_dirs_count;
+	u16 bg_pad;
+	u8 bg_reserved[4];
     
 } bg_descriptor_table;
 
@@ -117,9 +119,9 @@ typedef struct {
 
 typedef struct {
 
-  VDI_header hdr;
-  u32 cursor,fd;
-  u32 *map;
+	VDI_header hdr;
+	u32 cursor,fd;
+	u32 *map;
 
 } VDI_file;
 
@@ -148,10 +150,10 @@ u32 read_VDI_map(u32 fd, VDI_file *disk_info, u32 offset_blocks, u32 blocks_allo
 u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector);
 u32 get_super_block(u32 fd, ext2_super_block *main_super_block, VDI_header disk_info);
 u32 VDI_translate(u32 desired_byte, VDI_file disk_info);
-u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes);
+u32 read_s32o_buffer(u32 fd, void *buff, u32 position, u32 num_bytes);
 	
 
-int main(int argc, char *argv[]) {
+s32 main(s32 argc, char *argv[]) {
 	
 	u32 start;
 	u32 fd =0;
@@ -159,11 +161,11 @@ int main(int argc, char *argv[]) {
 	ext2_super_block main_super_block;
 	VDI_file vdi;
 	BootSector boot_sector;
-
-	printf("Name of file: %s\n", argv[1]);
+	printf("\nFile System Check:");
+	printf("\n\nName of file: %s\n", argv[1]);
 	vdi.fd = open(argv[1], O_RDONLY);
 
-	if(read_into_buffer(vdi.fd,&vdi.hdr,0,sizeof(vdi.hdr)) == -1) {
+	if(read_s32o_buffer(vdi.fd,&vdi.hdr,0,sizeof(vdi.hdr)) == -1) {
 		printf("Error.\n");
 		return EXIT_FAILURE;
 	}
@@ -173,7 +175,7 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if(read_into_buffer(vdi.fd,&boot_sector,VDI_translate(0, vdi),512) == -1) {
+	if(read_s32o_buffer(vdi.fd,&boot_sector,VDI_translate(0, vdi),512) == -1) {
 		printf("Error.\n");
 		return EXIT_FAILURE;
 	}
@@ -185,8 +187,13 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 	
-	if(lseek(vdi.fd, VDI_translate(1024+start, vdi), SEEK_SET) == -1) return EXIT_FAILURE;
-    	if(read(vdi.fd, &main_super_block, 1024) == -1) return EXIT_FAILURE;
+	//if(lseek(vdi.fd, VDI_translate(1024+start, vdi), SEEK_SET) == -1) return EXIT_FAILURE;
+    	//if(read(vdi.fd, &main_super_block, 1024) == -1) return EXIT_FAILURE;
+
+	if(read_s32o_buffer(vdi.fd,&main_super_block,VDI_translate(1024+start,vdi),1024) == -1) {
+		printf("Error.");
+		return EXIT_FAILURE;
+	}
 	
 	if(vdi.hdr.drive_type == 1) printf("File type: Dynamic\n");
 	else printf("File type: Static\n");
@@ -199,12 +206,25 @@ int main(int argc, char *argv[]) {
 	printf("Total disk size: %llu bytes.\n", vdi.hdr.disk_size);	
 	printf("Disk block size: %i bytes.\n", vdi.hdr.block_size);
 	printf("Total # of blocks: %i.\n",vdi.hdr.total_blocks);
-	printf("Total # of blocks allocated: %i.\n",vdi.hdr.blocks_allocated);
+	printf("Total # of blocks allocated: %i.\n\n",vdi.hdr.blocks_allocated);
 
-	printf("INFO FROM SUPERBLOCK\n");
-	printf("%i\n",main_super_block.s_mtime);
-	printf("\n%04x\n",main_super_block.s_magic);
-
+	printf("Superblock:\n");
+	printf("Inodes: %u\n",main_super_block.s_inodes_count);
+	printf("Blocks: %u\n",main_super_block.s_blocks_count);
+	printf("Reserved Blocks: %u\n",main_super_block.s_r_blocks_count);
+	printf("Free Blocks: %u\n",main_super_block.s_free_blocks_count);
+	printf("Free iNodes: %u\n",main_super_block.s_free_inodes_count);
+	printf("First Data Block Location: %u\n",main_super_block.s_first_data_block);
+	main_super_block.s_log_block_size = 1024 << main_super_block.s_log_block_size;
+	printf("Block Size: %u bytes\n", main_super_block.s_log_block_size);
+	printf("Fragment Size: %u\n",main_super_block.s_log_frag_size);
+	printf("Blocks per Group: %u\n",main_super_block.s_blocks_per_group);
+	printf("Fragments per Group: %u\n",main_super_block.s_frags_per_group);
+	printf("iNodes per Group: %u\n",main_super_block.s_inodes_per_group);
+	printf("Fragment Size: %u\n",main_super_block.s_log_frag_size);	
+	printf("The mysterious magical number: %x\n",main_super_block.s_magic);
+	
+	
 	free(vdi.map);
 
 	if(close(fd) == -1) {
@@ -263,22 +283,21 @@ u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector){
 
 }*/
 
-u32 get_bg_descriptor_table(u32 fd, int bg_number, ext2_super_block main_super_block, bg_descriptor_table *bg_data, VDI_header disk_info) {
+u32 get_bg_descriptor_table(u32 fd, s32 bg_number, ext2_super_block main_super_block, bg_descriptor_table *bg_data, VDI_header disk_info) {
     
-    if(lseek(fd, disk_info.offset_data + 1024 + bg_number * main_super_block.s_blocks_per_group * main_super_block.s_log_block_size + 			main_super_block.s_log_block_size , SEEK_SET) == -1) return -1;
-    if(read(fd, &bg_data, sizeof(bg_descriptor_table)) == -1) return -1;
+	if(lseek(fd, disk_info.offset_data + 1024 + bg_number * main_super_block.s_blocks_per_group * main_super_block.s_log_block_size + main_super_block.s_log_block_size , SEEK_SET) == -1) return -1;
+	if(read(fd, &bg_data, sizeof(bg_descriptor_table)) == -1) return -1;
 
 }
 
-u32 fetch_block( u32 fd, void *buf, int block_group, int block_num, VDI_header disk_info, ext2_super_block main_super_block) {
+u32 fetch_block( u32 fd, void *buf, s32 block_group, s32 block_num, VDI_header disk_info, ext2_super_block main_super_block) {
 
-    if(lseek(fd, disk_info.offset_data + 1024 + main_super_block.s_blocks_per_group * block_group * main_super_block.s_log_block_size + 			main_super_block.s_log_block_size * (block_num - 1),SEEK_SET) == -1) return -1;
-
-    if(read(fd, &buf, main_super_block.s_log_block_size) == -1) return -1;
+	if(lseek(fd, disk_info.offset_data + 1024 + main_super_block.s_blocks_per_group * block_group * main_super_block.s_log_block_size + main_super_block.s_log_block_size * (block_num - 1),SEEK_SET) == -1) return -1;
+	if(read(fd, &buf, main_super_block.s_log_block_size) == -1) return -1;
     
 }
 
-u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes) {
+u32 read_s32o_buffer(u32 fd, void *buff, u32 position, u32 num_bytes) {
 	
 	if(lseek(fd, position, SEEK_SET) == -1) return -1;
 	if(read(fd, buff, num_bytes) == -1) return -1;
