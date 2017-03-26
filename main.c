@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <math.h>
 
 
 u32 i;
@@ -94,7 +95,14 @@ typedef struct {
 	u16 bg_pad;
 	u8 bg_reserved[4];
     
-} bg_descriptor_table;
+} bg_descriptor;
+
+typedef struct __attribute__((packed)) bg_desc_table {
+
+	bg_descriptor *bg_descriptor;
+
+} bg_desc_table;
+
 
 typedef struct { 
 	
@@ -151,11 +159,12 @@ u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector);
 u32 get_super_block(u32 fd, ext2_super_block *main_super_block, VDI_header disk_info);
 u32 VDI_translate(u32 desired_byte, VDI_file disk_info);
 u32 read_s32o_buffer(u32 fd, void *buff, u32 position, u32 num_bytes);
+u32 sb_copy_block(u32 block_no);
 	
 
 s32 main(s32 argc, char *argv[]) {
 	
-	u32 start;
+	u32 start, no_blocks;
 	u32 fd =0;
 	VDI_header disk_info;
 	ext2_super_block main_super_block;
@@ -204,9 +213,9 @@ s32 main(s32 argc, char *argv[]) {
 	printf("Sectors: %i.\n", vdi.hdr.sectors);
 	printf("Sector Size: %i.\n", vdi.hdr.sector_size);
 	printf("Total disk size: %llu bytes.\n", vdi.hdr.disk_size);	
-	printf("Disk block size: %i bytes.\n", vdi.hdr.block_size);
-	printf("Total # of blocks: %i.\n",vdi.hdr.total_blocks);
-	printf("Total # of blocks allocated: %i.\n\n",vdi.hdr.blocks_allocated);
+	printf("Disk page size: %i bytes.\n", vdi.hdr.block_size);
+	printf("Total # of pages: %i.\n",vdi.hdr.total_blocks);
+	printf("Total # of pages allocated: %i.\n\n",vdi.hdr.blocks_allocated);
 
 	printf("Superblock:\n");
 	printf("Inodes: %u\n",main_super_block.s_inodes_count);
@@ -215,7 +224,7 @@ s32 main(s32 argc, char *argv[]) {
 	printf("Free Blocks: %u\n",main_super_block.s_free_blocks_count);
 	printf("Free iNodes: %u\n",main_super_block.s_free_inodes_count);
 	printf("First Data Block Location: %u\n",main_super_block.s_first_data_block);
-	main_super_block.s_log_block_size = 1024 << main_super_block.s_log_block_size;
+	main_super_block.s_log_block_size = 1024 << main_super_block.s_log_block_size;	
 	printf("Block Size: %u bytes\n", main_super_block.s_log_block_size);
 	printf("Fragment Size: %u\n",main_super_block.s_log_frag_size);
 	printf("Blocks per Group: %u\n",main_super_block.s_blocks_per_group);
@@ -223,6 +232,11 @@ s32 main(s32 argc, char *argv[]) {
 	printf("iNodes per Group: %u\n",main_super_block.s_inodes_per_group);
 	printf("Fragment Size: %u\n",main_super_block.s_log_frag_size);	
 	printf("The mysterious magical number: %x\n",main_super_block.s_magic);
+
+	if(main_super_block.s_blocks_count % main_super_block.s_blocks_per_group == 0) no_blocks =  main_super_block.s_blocks_count / main_super_block.s_blocks_per_group;
+	else no_blocks = (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1;
+
+	printf("Total number of blocks: %u\n",no_blocks);
 	
 	
 	free(vdi.map);
@@ -283,10 +297,10 @@ u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector){
 
 }*/
 
-u32 get_bg_descriptor_table(u32 fd, s32 bg_number, ext2_super_block main_super_block, bg_descriptor_table *bg_data, VDI_header disk_info) {
+u32 get_bg_descriptor_table(u32 fd, s32 bg_number, ext2_super_block main_super_block, bg_desc_table *bg_data, VDI_header disk_info) {
     
 	if(lseek(fd, disk_info.offset_data + 1024 + bg_number * main_super_block.s_blocks_per_group * main_super_block.s_log_block_size + main_super_block.s_log_block_size , SEEK_SET) == -1) return -1;
-	if(read(fd, &bg_data, sizeof(bg_descriptor_table)) == -1) return -1;
+	if(read(fd, &bg_data, sizeof(bg_desc_table)) == -1) return -1;
 
 }
 
@@ -302,4 +316,17 @@ u32 read_s32o_buffer(u32 fd, void *buff, u32 position, u32 num_bytes) {
 	if(lseek(fd, position, SEEK_SET) == -1) return -1;
 	if(read(fd, buff, num_bytes) == -1) return -1;
 
+}
+
+u32 sb_copy_block(u32 block_num, u32 no_blocks) {
+
+	int blocks_with_copy[10] = {3,5,7,9,25,27,49,81,125,243};
+
+	for(i=0;i<10;i++) {
+
+		if(block_num == blocks_with_copy[i]) {
+			return 1;
+	}
+
+	return 0;
 }
