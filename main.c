@@ -158,8 +158,8 @@ u32 read_VDI_map(u32 fd, VDI_file *disk_info, u32 offset_blocks, u32 blocks_allo
 u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector);
 u32 get_super_block(u32 fd, ext2_super_block *main_super_block, VDI_header disk_info);
 u32 VDI_translate(u32 desired_byte, VDI_file disk_info);
-u32 read_s32o_buffer(u32 fd, void *buff, u32 position, u32 num_bytes);
-u32 sb_copy_block(u32 block_no);
+u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes);
+u32 sb_copy_block(u32 block_num, u32 no_blocks);
 	
 
 s32 main(s32 argc, char *argv[]) {
@@ -174,7 +174,7 @@ s32 main(s32 argc, char *argv[]) {
 	printf("\n\nName of file: %s\n", argv[1]);
 	vdi.fd = open(argv[1], O_RDONLY);
 
-	if(read_s32o_buffer(vdi.fd,&vdi.hdr,0,sizeof(vdi.hdr)) == -1) {
+	if(read_into_buffer(vdi.fd,&vdi.hdr,0,sizeof(vdi.hdr)) == -1) {
 		printf("Error.\n");
 		return EXIT_FAILURE;
 	}
@@ -184,7 +184,7 @@ s32 main(s32 argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if(read_s32o_buffer(vdi.fd,&boot_sector,VDI_translate(0, vdi),512) == -1) {
+	if(read_into_buffer(vdi.fd,&boot_sector,VDI_translate(0, vdi),512) == -1) {
 		printf("Error.\n");
 		return EXIT_FAILURE;
 	}
@@ -199,7 +199,7 @@ s32 main(s32 argc, char *argv[]) {
 	//if(lseek(vdi.fd, VDI_translate(1024+start, vdi), SEEK_SET) == -1) return EXIT_FAILURE;
     	//if(read(vdi.fd, &main_super_block, 1024) == -1) return EXIT_FAILURE;
 
-	if(read_s32o_buffer(vdi.fd,&main_super_block,VDI_translate(1024+start,vdi),1024) == -1) {
+	if(read_into_buffer(vdi.fd,&main_super_block,VDI_translate(1024+start,vdi),1024) == -1) {
 		printf("Error.");
 		return EXIT_FAILURE;
 	}
@@ -237,7 +237,12 @@ s32 main(s32 argc, char *argv[]) {
 	else no_blocks = (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1;
 
 	printf("Total number of blocks: %u\n",no_blocks);
-	
+
+	for(i=0;i<vdi.hdr.blocks_allocated;i++) {
+		printf("Blocks: %i\n", vdi.map[i]);
+	}
+
+	printf("OUTPUT: %i\n",VDI_translate(5242880,vdi));
 	
 	free(vdi.map);
 
@@ -311,7 +316,7 @@ u32 fetch_block( u32 fd, void *buf, s32 block_group, s32 block_num, VDI_header d
     
 }
 
-u32 read_s32o_buffer(u32 fd, void *buff, u32 position, u32 num_bytes) {
+u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes) {
 	
 	if(lseek(fd, position, SEEK_SET) == -1) return -1;
 	if(read(fd, buff, num_bytes) == -1) return -1;
@@ -326,12 +331,13 @@ u32 sb_copy_block(u32 block_num, u32 no_blocks) {
 
 		if(block_num == blocks_with_copy[i]) {
 			return 1;
+		}
 	}
 
 	return 0;
 }
         
-    void read_inode_info(u32 inode_num, struct ext2_inode *i_info) {
+/*    void read_inode_info(u32 inode_num, struct ext2_inode *i_info) {
 
     int block_group = (inode_num - 1) / main_super_block.s_inodes_per_group;
     struct bg_descriptor gd_info;
@@ -355,4 +361,4 @@ u32 sb_copy_block(u32 block_num, u32 no_blocks) {
 //    for(int i = 0; i < 15; i++){
 //        i_info->i_block[i] = read_bytes(buf, offset + 40 + (i * 4), 4);
     }    
-}
+}*/
