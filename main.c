@@ -153,6 +153,12 @@ typedef struct __attribute__((packed)) BootSector {
 
 } BootSector;
 
+typedef struct {
+
+	u8 *buff;
+
+} arb_block;
+
 
 u32 read_VDI_map(u32 fd, VDI_file *disk_info, u32 offset_blocks, u32 blocks_allocated);
 u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector);
@@ -160,7 +166,8 @@ u32 get_super_block(u32 fd, ext2_super_block *main_super_block, VDI_header disk_
 u32 VDI_translate(u32 desired_byte, VDI_file disk_info);
 u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes);
 u32 sb_copy_block(u32 block_num, u32 no_block_grps);
-u32 fetch_block( u32 fd, void *buf, s32 block_num, u32 block_size, VDI_file disk_info, u32 start);
+u32 fetch_block( u32 fd, arb_block *buf, s32 block_num, u32 block_size, VDI_file disk_info, u32 start);
+u32 block_buf_allocate(u32 block_size, arb_block *block_buf );
 	
 
 s32 main(s32 argc, char *argv[]) {
@@ -172,13 +179,14 @@ s32 main(s32 argc, char *argv[]) {
 	ext2_super_block backup_super_block;
 	VDI_file vdi;
 	BootSector boot_sector;
+	arb_block temp_block;
 
 	printf("\nFile System Check:");
 	printf("\n\nName of file: %s\n", argv[1]);
 	vdi.fd = open(argv[1], O_RDONLY);
 
 	if(read_into_buffer(vdi.fd,&vdi.hdr,0,sizeof(vdi.hdr)) == -1) {
-		printf("Error.\n");
+		printf("Error.  VDI has not been read.\n");
 		return EXIT_FAILURE;
 	}
 
@@ -233,14 +241,30 @@ s32 main(s32 argc, char *argv[]) {
 	printf("Fragment Size: %u\n",main_super_block.s_log_frag_size);	
 	printf("The mysterious magical number: %x\n",main_super_block.s_magic);
 
-	if(main_super_block.s_blocks_count % main_super_block.s_blocks_per_group == 0) no_block_grps =  main_super_block.s_blocks_count / main_super_block.s_blocks_per_group;
+	if(main_super_block.s_blocks_count % main_super_block.s_blocks_per_group == 0) no_block_grps =  main_super_block.s_blocks_count / 			main_super_block.s_blocks_per_group;
 	else no_block_grps = (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1;
 
 	printf("Total number of block groups: %u\n",no_block_grps);
+	
+	if(block_buf_allocate(main_super_block.s_log_block_size, &temp_block) == -1) {
+		return EXIT_FAILURE;
+	}
+	printf("OK\n");
+
+	if(fetch_block(vdi.fd,&temp_block,2,main_super_block.s_log_block_size,vdi,start) == -1) {
+		printf("Error.");
+		return EXIT_FAILURE;
+	}
+	printf("OK\n");
+
+	for(i=0;i<1024;i++) {
+		printf("INFO: %x\n",temp_block.buff[i]);
+	}
 
 	
 	
 	free(vdi.map);
+	free(temp_block.buff);
 
 	if(close(fd) == -1) {
 		printf("Error.\n");
@@ -298,21 +322,43 @@ u32 get_bg_descriptor_table(u32 fd, s32 bg_number, ext2_super_block main_super_b
 
 }
 
-u32 fetch_block( u32 fd, void *buf, s32 block_num, u32 block_size, VDI_file disk_info,u32 start) {
+u32 fetch_block( u32 fd,arb_block *buf, s32 block_num, u32 block_size, VDI_file disk_info,u32 start) {
 
 	u32 loc = VDI_translate(start + 1024 + (block_num * block_size), disk_info);
 
+	//if(read_into_buffer(fd, buf, loc, block_size) == -1) return -1;
+
 	if(lseek(fd, loc, SEEK_SET) == -1) return -1;
-	if(read(fd, buf, block_size) == -1) return -1;
+	if(read(fd, buf->buff, block_size) == -1) return -1;
     
 }
 
 u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes) {
 	
-	if(lseek(fd, position, SEEK_SET) == -1) return -1;
-	if(read(fd, buff, num_bytes) == -1) return -1;
-
+	if(lseek(fd, position, SEEK_SET) == -1) {
+		printf("LSEEK FAILURE\n");
+		return -1;
+	}
+	if(read(fd, buff, num_bytes) == -1) {
+		printf("READ FAILURE\n");
+		return -1;
+	}
 }
+
+u32 block_buf_allocate(u32 block_size, arb_block *block_buf ) {
+	
+	block_buf->buff = (u8 *)malloc(block_size);
+
+	if(block_buf->buff == NULL) {
+		printf("Memory Not Allocated!\n");
+		return -1;
+
+	}
+}
+
+	
+
+	
         
 /*    void read_inode_info(u32 inode_num, struct ext2_inode *i_info) {
 
