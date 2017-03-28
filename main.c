@@ -241,7 +241,7 @@ s32 main(s32 argc, char *argv[]) {
 	printf("Fragment Size: %u\n",main_super_block.s_log_frag_size);	
 	printf("The mysterious magical number: %x\n",main_super_block.s_magic);
 
-	if(main_super_block.s_blocks_count % main_super_block.s_blocks_per_group == 0) no_block_grps =  main_super_block.s_blocks_count / 			main_super_block.s_blocks_per_group;
+	if(main_super_block.s_blocks_count % main_super_block.s_blocks_per_group == 0) no_block_grps =  main_super_block.s_blocks_count / 					main_super_block.s_blocks_per_group;
 	else no_block_grps = (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1;
 
 	printf("Total number of block groups: %u\n",no_block_grps);
@@ -251,15 +251,13 @@ s32 main(s32 argc, char *argv[]) {
 	}
 	printf("OK\n");
 
-	if(fetch_block(vdi.fd,&temp_block,2,main_super_block.s_log_block_size,vdi,start) == -1) {
+	if(fetch_block(vdi.fd,&temp_block,0,main_super_block.s_log_block_size,vdi,start) == -1) {
 		printf("Error.");
 		return EXIT_FAILURE;
 	}
 	printf("OK\n");
 
-	for(i=0;i<1024;i++) {
-		printf("INFO: %x\n",temp_block.buff[i]);
-	}
+	
 
 	
 	
