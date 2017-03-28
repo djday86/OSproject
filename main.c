@@ -159,17 +159,20 @@ u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector);
 u32 get_super_block(u32 fd, ext2_super_block *main_super_block, VDI_header disk_info);
 u32 VDI_translate(u32 desired_byte, VDI_file disk_info);
 u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes);
-u32 sb_copy_block(u32 block_num, u32 no_blocks);
+u32 sb_copy_block(u32 block_num, u32 no_block_grps);
+u32 fetch_block( u32 fd, void *buf, s32 block_num, u32 block_size, VDI_file disk_info, u32 start);
 	
 
 s32 main(s32 argc, char *argv[]) {
 	
-	u32 start, no_blocks;
+	u32 start, no_block_grps;
 	u32 fd =0;
 	VDI_header disk_info;
 	ext2_super_block main_super_block;
+	ext2_super_block backup_super_block;
 	VDI_file vdi;
 	BootSector boot_sector;
+
 	printf("\nFile System Check:");
 	printf("\n\nName of file: %s\n", argv[1]);
 	vdi.fd = open(argv[1], O_RDONLY);
@@ -195,9 +198,6 @@ s32 main(s32 argc, char *argv[]) {
 		printf("Error.\n");
 		return EXIT_FAILURE;
 	}
-	
-	//if(lseek(vdi.fd, VDI_translate(1024+start, vdi), SEEK_SET) == -1) return EXIT_FAILURE;
-    	//if(read(vdi.fd, &main_super_block, 1024) == -1) return EXIT_FAILURE;
 
 	if(read_into_buffer(vdi.fd,&main_super_block,VDI_translate(1024+start,vdi),1024) == -1) {
 		printf("Error.");
@@ -233,16 +233,12 @@ s32 main(s32 argc, char *argv[]) {
 	printf("Fragment Size: %u\n",main_super_block.s_log_frag_size);	
 	printf("The mysterious magical number: %x\n",main_super_block.s_magic);
 
-	if(main_super_block.s_blocks_count % main_super_block.s_blocks_per_group == 0) no_blocks =  main_super_block.s_blocks_count / main_super_block.s_blocks_per_group;
-	else no_blocks = (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1;
+	if(main_super_block.s_blocks_count % main_super_block.s_blocks_per_group == 0) no_block_grps =  main_super_block.s_blocks_count / main_super_block.s_blocks_per_group;
+	else no_block_grps = (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1;
 
-	printf("Total number of blocks: %u\n",no_blocks);
+	printf("Total number of block groups: %u\n",no_block_grps);
 
-	for(i=0;i<vdi.hdr.blocks_allocated;i++) {
-		printf("Blocks: %i\n", vdi.map[i]);
-	}
-
-	printf("OUTPUT: %i\n",VDI_translate(5242880,vdi));
+	
 	
 	free(vdi.map);
 
@@ -295,13 +291,6 @@ u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector){
                 
 }
 
-/*u32 get_super_block(u32 fd, super_block *main_super_block, VDI_header disk_info) {
-
-    if(lseek(fd, ((disk_info.map[0] + 1) * disk_info.offset_blocks) + 1024, SEEK_SET) == -1) return -1;
-    if(read(fd, &main_super_block, 84) == -1) return -1;
-
-}*/
-
 u32 get_bg_descriptor_table(u32 fd, s32 bg_number, ext2_super_block main_super_block, bg_desc_table *bg_data, VDI_header disk_info) {
     
 	if(lseek(fd, disk_info.offset_data + 1024 + bg_number * main_super_block.s_blocks_per_group * main_super_block.s_log_block_size + main_super_block.s_log_block_size , SEEK_SET) == -1) return -1;
@@ -309,10 +298,12 @@ u32 get_bg_descriptor_table(u32 fd, s32 bg_number, ext2_super_block main_super_b
 
 }
 
-u32 fetch_block( u32 fd, void *buf, s32 block_group, s32 block_num, VDI_header disk_info, ext2_super_block main_super_block) {
+u32 fetch_block( u32 fd, void *buf, s32 block_num, u32 block_size, VDI_file disk_info,u32 start) {
 
-	if(lseek(fd, disk_info.offset_data + 1024 + main_super_block.s_blocks_per_group * block_group * main_super_block.s_log_block_size + main_super_block.s_log_block_size * (block_num - 1),SEEK_SET) == -1) return -1;
-	if(read(fd, &buf, main_super_block.s_log_block_size) == -1) return -1;
+	u32 loc = VDI_translate(start + 1024 + (block_num * block_size), disk_info);
+
+	if(lseek(fd, loc, SEEK_SET) == -1) return -1;
+	if(read(fd, buf, block_size) == -1) return -1;
     
 }
 
@@ -321,20 +312,6 @@ u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes) {
 	if(lseek(fd, position, SEEK_SET) == -1) return -1;
 	if(read(fd, buff, num_bytes) == -1) return -1;
 
-}
-
-u32 sb_copy_block(u32 block_num, u32 no_blocks) {
-
-	int blocks_with_copy[10] = {3,5,7,9,25,27,49,81,125,243};
-
-	for(i=0;i<10;i++) {
-
-		if(block_num == blocks_with_copy[i]) {
-			return 1;
-		}
-	}
-
-	return 0;
 }
         
 /*    void read_inode_info(u32 inode_num, struct ext2_inode *i_info) {
