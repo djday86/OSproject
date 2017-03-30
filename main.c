@@ -358,28 +358,61 @@ u32 block_buf_allocate(u32 block_size, arb_block *block_buf ) {
 
 	
         
-/*    void read_inode_info(u32 inode_num, struct ext2_inode *i_info) {
-
+void get_inode_bitmap(u32 fd, struct, arb_block *inode_bitmap, bg_descriptor gd_info){
+        
     int block_group = (inode_num - 1) / main_super_block.s_inodes_per_group;
-    struct bg_descriptor gd_info;
-    get_bg_descriptor_table(fd, block_group, main_super_block, *bg_info, disk_info);
-    u32 inode_table_start = bg_info.bg_inode_table;
-    int inode_index = (inode_num - 1) % main_super_block.s_inodes_per_group;
-    int block_num = (inode_table_start + inode_index)/main_super_block.s_inodes_per_group
+    inode_bitmap = (u8 *)malloc(main_super_block.s_inodes_count/8);
+       
     
-    fetch_block(fd, block_num)
+    for (i = 0, i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1, i++){
+        u32 inode_table_start = gd_info[i].bg_inode_table;
+        int block_num = inode_table_start/main_super_block.s_log_block_size 
+        lseek(fd, VDI_translate(inode_table_start, fd), SEEK_SET);
+        read(fd, &inode_bitmap, main_super_block.s_log_block_size);
+    
+        //fetch_block(fd, *inode_bitmap, block_num, main_super_block.s_log_block_size, disk_info, start);
+        }
+}
+
+void get_block_bitmap(u32 fd, arb_block *block_bitmap,bg_descriptor gd_info ){
+        
+    block_bitmap = (u8 *)malloc(main_super_block.s_blocks_count/8);
+       
+    
+    for (i = 0, i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1, i++){
+        u32 block_table_start = gd_info[i].bg_block_table;
+        //int block_num = inode_table_start/main_super_block.s_log_block_size 
+        lseek(fd, VDI_translate(block_table_start, fd), SEEK_SET);
+        read(fd, &block_bitmap, main_super_block.s_log_block_size)
+    
+        //fetch_block(fd, *inode_bitmap, block_num, main_super_block.s_log_block_size, disk_info, start);
+        }
+
+//void get_block_bitmap(struct ext2_inode *i_info, arb_block *block_bitmap,bg_descriptor gd_info, u32 start ){
+//        
 //    
-//    u32 inode_sector_offset = inode_index/(sector_size_per_bytes/main_super_block.s_inode_size);
+//    inode_bitmap = (u8 *)malloc(main_super_block.s_blocks_count/8);
+//       
 //    
+//    for (i = 0, i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1, i++){
+//        u32 inode_table_start = gd_info[i].bg_inode_table;
+//        int inode_index = (inode_num - 1) % main_super_block.s_inodes_per_group;
+//        int block_num = (inode_table_start + inode_index)/main_super_block.s_inodes_per_group
 //    
-//    lseek(start + (inode_table_start * sectors_per_block) + inode_sector_offset, SEEK_SET);
-//     read(fd, &i_info, inode_index);
-//    u32 num_inodes_sector = sector_size_bytes / super.s_inode_size;
-//    u32 offset = ((inode_index % num_inodes_sector)) * main_super_block.s_inode_size; 
-//    i_info->i_mode = read_bytes(buf, offset + 0, 2);
-//    i_info->i_size = read_bytes(buf, offset + 4, 4);
-//    i_info->i_links_count = read_bytes(buf, offset + 26, 2);
-//    for(int i = 0; i < 15; i++){
-//        i_info->i_block[i] = read_bytes(buf, offset + 40 + (i * 4), 4);
-    }    
-}*/
+//        fetch_block(fd, *inode_bitmap, block_num, main_super_block.s_log_block_size, disk_info, start);
+//        }
+////    
+////    u32 inode_sector_offset = inode_index/(sector_size_per_bytes/main_super_block.s_inode_size);
+////    
+////    
+////    lseek(start + (inode_table_start * sectors_per_block) + inode_sector_offset, SEEK_SET);
+////     read(fd, &i_info, inode_index);
+////    u32 num_inodes_sector = sector_size_bytes / super.s_inode_size;
+////    u32 offset = ((inode_index % num_inodes_sector)) * main_super_block.s_inode_size; 
+////    i_info->i_mode = read_bytes(buf, offset + 0, 2);
+////    i_info->i_size = read_bytes(buf, offset + 4, 4);
+////    i_info->i_links_count = read_bytes(buf, offset + 26, 2);
+////    for(int i = 0; i < 15; i++){
+////        i_info->i_block[i] = read_bytes(buf, offset + 40 + (i * 4), 4);
+//       
+//}
