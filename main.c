@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <math.h>
+#include "ext2.h"
 
 
 u32 i;
@@ -124,6 +125,68 @@ typedef struct {
 	u8 unused_info[0x78];
 
 } VDI_header;
+
+typedef struct {
+	s16	i_mode;		/* File mode */
+	s16	i_uid;		/* Low 16 bits of Owner Uid */
+	s32	i_size;		/* Size in bytes */
+	s32	i_atime;	/* Access time */
+	s32	i_ctime;	/* Creation time */
+	s32	i_mtime;	/* Modification time */
+	s32	i_dtime;	/* Deletion Time */
+	s16	i_gid;		/* Low 16 bits of Group Id */
+	s16	i_links_count;	/* Links count */
+	s32	i_blocks;	/* Blocks count */
+	s32	i_flags;	/* File flags */
+	union {
+		struct {
+			s32  l_i_reserved1;
+		} linux1;
+		struct {
+			s32  h_i_translator;
+		} hurd1;
+		struct {
+			s32  m_i_reserved1;
+		} masix1;
+	} osd1;				/* OS dependent 1 */
+	s32	i_block[EXT2_N_BLOCKS];/* Pointers to blocks */
+	s32	i_generation;	/* File version (for NFS) */
+	s32	i_file_acl;	/* File ACL */
+	s32	i_dir_acl;	/* Directory ACL */
+	s32	i_faddr;	/* Fragment address */
+	union {
+		struct {
+			u8	l_i_frag;	/* Fragment number */
+			u8	l_i_fsize;	/* Fragment size */
+			u16	i_pad1;
+			s16	l_i_uid_high;	/* these 2 fields    */
+			s16	l_i_gid_high;	/* were reserved2[0] */
+			u32	l_i_reserved2;
+		} linux2;
+		struct {
+			u8	h_i_frag;	/* Fragment number */
+			u8	h_i_fsize;	/* Fragment size */
+			s16	h_i_mode_high;
+			s16	h_i_uid_high;
+			s16	h_i_gid_high;
+			s32	h_i_author;
+		} hurd2;
+		struct {
+			u8	m_i_frag;	/* Fragment number */
+			u8	m_i_fsize;	/* Fragment size */
+			u16	m_pad1;
+			u32	m_i_reserved2[2];
+		} masix2;
+	} osd2;				/* OS dependent 2 */
+} ext2_inode;
+
+
+
+typedef struct {
+    
+  ext2_inode *inode_entry;
+  
+} inode_table;
 
 typedef struct {
 
@@ -358,14 +421,13 @@ u32 block_buf_allocate(u32 block_size, arb_block *block_buf ) {
 
 	
         
-void get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_descriptor gd_info){
+void get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_descriptor gd_info, super_block main_super_block){
         
-    int block_group = (inode_num - 1) / main_super_block.s_inodes_per_group;
     inode_bitmap = (u8 *)malloc(main_super_block.s_inodes_count/8);
        
     
     for (i = 0, i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1, i++){
-        u32 inode_table_start = start + 1024 + gd_info[i].bg_inode_table;
+        u32 inode_table_start = start + 1024 + gd_info[i].bg_inode_bitmap;
         int block_num = inode_table_start/main_super_block.s_log_block_size 
         lseek(fd, VDI_translate(inode_table_start, fd), SEEK_SET);
         read(fd, &inode_bitmap, main_super_block.s_log_block_size);
@@ -374,19 +436,32 @@ void get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_descriptor 
         }
 }
 
-void get_block_bitmap(u32 fd, arb_block *block_bitmap,bg_descriptor gd_info ){
+void get_block_bitmap(u32 fd, arb_block *block_bitmap,bg_descriptor gd_info, super_block main_super_block ){
         
     block_bitmap = (u8 *)malloc(main_super_block.s_blocks_count/8);
        
     
     for (i = 0, i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1, i++){
-        u32 block_table_start = start + 1024 + gd_info[i].bg_block_table;
+        u32 block_table_start = start + 1024 + gd_info[i].bg_block_bitmap;
         //int block_num = inode_table_start/main_super_block.s_log_block_size 
         lseek(fd, VDI_translate(block_table_start, fd), SEEK_SET);
         read(fd, &block_bitmap, main_super_block.s_log_block_size)
     
         //fetch_block(fd, *inode_bitmap, block_num, main_super_block.s_log_block_size, disk_info, start);
         }
+}
+
+void get_inode_table(u32 fd, u32 start, bg_descriptor gd_info, super_block main_super_block, inode_table *i_table ) {
+    
+    i_table =  malloc(sizeof(ext2_inode) * main_super_block.s_inodes_count);
+    
+    for (i = 0, i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1, i++){
+        u32 inode_table_start = start + 1024 + gd_info[i].bg_inode_table;
+        //int block_num = inode_table_start/main_super_block.s_log_block_size 
+        lseek(fd, VDI_translate(inode_table_start, fd), SEEK_SET);
+        read(fd, &block_bitmap, main_super_block.s_log_block_size * 23)
+    
+}
 
 //void get_block_bitmap(struct ext2_inode *i_info, arb_block *block_bitmap,bg_descriptor gd_info, u32 start ){
 //        
