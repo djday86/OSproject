@@ -358,14 +358,14 @@ u32 block_buf_allocate(u32 block_size, arb_block *block_buf ) {
 
 	
         
-void get_inode_bitmap(u32 fd, struct, arb_block *inode_bitmap, bg_descriptor gd_info){
+void get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_descriptor gd_info){
         
     int block_group = (inode_num - 1) / main_super_block.s_inodes_per_group;
     inode_bitmap = (u8 *)malloc(main_super_block.s_inodes_count/8);
        
     
     for (i = 0, i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1, i++){
-        u32 inode_table_start = gd_info[i].bg_inode_table;
+        u32 inode_table_start = start + 1024 + gd_info[i].bg_inode_table;
         int block_num = inode_table_start/main_super_block.s_log_block_size 
         lseek(fd, VDI_translate(inode_table_start, fd), SEEK_SET);
         read(fd, &inode_bitmap, main_super_block.s_log_block_size);
@@ -380,7 +380,7 @@ void get_block_bitmap(u32 fd, arb_block *block_bitmap,bg_descriptor gd_info ){
        
     
     for (i = 0, i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1, i++){
-        u32 block_table_start = gd_info[i].bg_block_table;
+        u32 block_table_start = start + 1024 + gd_info[i].bg_block_table;
         //int block_num = inode_table_start/main_super_block.s_log_block_size 
         lseek(fd, VDI_translate(block_table_start, fd), SEEK_SET);
         read(fd, &block_bitmap, main_super_block.s_log_block_size)
