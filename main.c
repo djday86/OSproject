@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <math.h>
-#include "ext2.h"
+
 
 
 u32 i;
@@ -376,90 +376,89 @@ u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector){
                 
 }
 
-u32 get_bg_descriptor_table(u32 fd, s32 bg_number, ext2_super_block main_super_block, bg_desc_table *bg_data, VDI_header disk_info) {
+u32 get_bg_descriptor_table(u32 fd, s32 bg_number, ext2_super_block main_sb, bg_desc_table *bg_data, VDI_header disk_info) {
     
-	if(lseek(fd, disk_info.offset_data + 1024 + bg_number * main_super_block.s_blocks_per_group * main_super_block.s_log_block_size + main_super_block.s_log_block_size , SEEK_SET) == -1) return -1;
+	if(lseek(fd, disk_info.offset_data + 1024 + bg_number * main_sb.s_blocks_per_group * main_sb.s_log_block_size + main_sb.s_log_block_size , SEEK_SET) == -1) return -1;
 	if(read(fd, &bg_data, sizeof(bg_desc_table)) == -1) return -1;
 
 }
 
-u32 fetch_block( u32 fd,arb_block *buf, s32 block_num, u32 block_size, VDI_file disk_info,u32 start) {
+u32 fetch_block( u32 fd, arb_block *block, s32 num, u32 size, VDI_file disk,u32 start) {
 
-	u32 loc = VDI_translate(start + 1024 + (block_num * block_size), disk_info);
+	u32 loc = VDI_translate(start + 1024 + (num * size), disk);
+	if(read_into_buffer(fd, block, loc, size) == -1) return -1;
 
-	//if(read_into_buffer(fd, buf, loc, block_size) == -1) return -1;
-
-	if(lseek(fd, loc, SEEK_SET) == -1) return -1;
-	if(read(fd, buf->buff, block_size) == -1) return -1;
-    
 }
 
 u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes) {
 	
 	if(lseek(fd, position, SEEK_SET) == -1) {
-		printf("LSEEK FAILURE\n");
+		printf("Read_Into_Buffer: Could not seek to value.\n");
 		return -1;
 	}
 	if(read(fd, buff, num_bytes) == -1) {
-		printf("READ FAILURE\n");
+		printf("Read_Into_Buffer: Could not read value into buffer.\n");
 		return -1;
 	}
 }
 
-u32 block_buf_allocate(u32 block_size, arb_block *block_buf ) {
+u32 block_buf_allocate(u32 block_size, arb_block *block ) {
 	
-	block_buf->buff = (u8 *)malloc(block_size);
+	block->buff = (u8 *)malloc(block_size);
 
-	if(block_buf->buff == NULL) {
-		printf("Memory Not Allocated!\n");
+	if(block->buff == NULL) {
+		printf("Block_Buf_Allocate: Memory Not Allocated!\n");
 		return -1;
-
 	}
 }
 
+void free_block(arb_block block) {
+
+	free(block);
+}
 	
 
 	
         
-void get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_descriptor gd_info, super_block main_super_block){
+void get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_descriptor gd_info, ext2_super_block main_super_block){
         
     inode_bitmap = (u8 *)malloc(main_super_block.s_inodes_count/8);
        
     
-    for (i = 0, i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1, i++){
+    for (i = 0; i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1; i++){
         u32 inode_table_start = start + 1024 + gd_info[i].bg_inode_bitmap;
         int block_num = inode_table_start/main_super_block.s_log_block_size 
         lseek(fd, VDI_translate(inode_table_start, fd), SEEK_SET);
-        read(fd, &inode_bitmap, main_super_block.s_log_block_size);
+        read(fd, inode_bitmap, main_super_block.s_log_block_size);
     
         //fetch_block(fd, *inode_bitmap, block_num, main_super_block.s_log_block_size, disk_info, start);
         }
 }
 
-void get_block_bitmap(u32 fd, arb_block *block_bitmap,bg_descriptor gd_info, super_block main_super_block ){
+void get_block_bitmap(u32 fd, arb_block *block_bitmap,bg_descriptor gd_info, ext2_super_block main_super_block ){
         
     block_bitmap = (u8 *)malloc(main_super_block.s_blocks_count/8);
        
     
-    for (i = 0, i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1, i++){
+    for (i = 0; i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1; i++){
         u32 block_table_start = start + 1024 + gd_info[i].bg_block_bitmap;
         //int block_num = inode_table_start/main_super_block.s_log_block_size 
         lseek(fd, VDI_translate(block_table_start, fd), SEEK_SET);
-        read(fd, &block_bitmap, main_super_block.s_log_block_size)
+        read(fd, block_bitmap, main_super_block.s_log_block_size)
     
         //fetch_block(fd, *inode_bitmap, block_num, main_super_block.s_log_block_size, disk_info, start);
         }
 }
 
-void get_inode_table(u32 fd, u32 start, bg_descriptor gd_info, super_block main_super_block, inode_table *i_table ) {
+void get_inode_table(u32 fd, u32 start, bg_descriptor gd_info, ext2_super_block main_super_block, inode_table *i_table ) {
     
     i_table =  malloc(sizeof(ext2_inode) * main_super_block.s_inodes_count);
     
-    for (i = 0, i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1, i++){
+    for (i = 0; i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1; i++){
         u32 inode_table_start = start + 1024 + gd_info[i].bg_inode_table;
         //int block_num = inode_table_start/main_super_block.s_log_block_size 
         lseek(fd, VDI_translate(inode_table_start, fd), SEEK_SET);
-        read(fd, &block_bitmap, main_super_block.s_log_block_size * 23)
+        read(fd, block_bitmap, main_super_block.s_log_block_size * 23);
     
 }
 
