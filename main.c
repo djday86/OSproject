@@ -7,6 +7,12 @@
 #include <fcntl.h>
 #include <math.h>
 
+#define	EXT2_NDIR_BLOCKS		12
+#define	EXT2_IND_BLOCK			EXT2_NDIR_BLOCKS
+#define	EXT2_DIND_BLOCK			(EXT2_IND_BLOCK + 1)
+#define	EXT2_TIND_BLOCK			(EXT2_DIND_BLOCK + 1)
+#define	EXT2_N_BLOCKS			(EXT2_TIND_BLOCK + 1)
+
 
 
 u32 i;
@@ -341,13 +347,18 @@ u32 read_VDI_map(u32 fd, VDI_file *disk_info, u32 offset_blocks, u32 blocks_allo
 	disk_info->map = (u32 *)malloc(4*(blocks_allocated));
 
 	if(disk_info->map == NULL) {
-
-		printf("MEMORY FAILURE: MEMORY NOT ALLOCATED");
+		printf("VDI Map Read: MEMORY FAILURE: COULD NOT READ INTO MEMORY");
 		return -1;
 	}
 
-	if(lseek(fd,offset_blocks,SEEK_SET) == -1) return -1;
-	if(read(fd, disk_info->map, 4*blocks_allocated) == -1) return -1;
+	if(lseek(fd,offset_blocks,SEEK_SET) == -1) {
+		printf("VDI Map Read: LSEEK FAILURE");		
+		return -1;
+	}
+
+	if(read(fd, disk_info->map, 4*blocks_allocated) == -1) {
+		printf("VDI Map Read: READ FAILURE");
+ 		return -1;
 }
 
 u32 VDI_translate(u32 desired_byte, VDI_file disk_info) {
@@ -378,8 +389,15 @@ u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector){
 
 u32 get_bg_descriptor_table(u32 fd, s32 bg_number, ext2_super_block main_sb, bg_desc_table *bg_data, VDI_header disk_info) {
     
-	if(lseek(fd, disk_info.offset_data + 1024 + bg_number * main_sb.s_blocks_per_group * main_sb.s_log_block_size + main_sb.s_log_block_size , SEEK_SET) == -1) return -1;
-	if(read(fd, &bg_data, sizeof(bg_desc_table)) == -1) return -1;
+	if(lseek(fd, disk_info.offset_data + 1024 + bg_number * main_sb.s_blocks_per_group * main_sb.s_log_block_size + main_sb.s_log_block_size , SEEK_SET) == -1) {
+		printf("Block group descriptor fetch: LSEEK FAILURE");
+		return -1;
+	}
+
+	if(read(fd, &bg_data, sizeof(bg_desc_table)) == -1) {
+		printf("Block group descriptor fetch:  READ FAILURE");		
+		return -1;
+	}
 
 }
 
@@ -393,11 +411,11 @@ u32 fetch_block( u32 fd, arb_block *block, s32 num, u32 size, VDI_file disk,u32 
 u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes) {
 	
 	if(lseek(fd, position, SEEK_SET) == -1) {
-		printf("Read_Into_Buffer: Could not seek to value.\n");
+		printf("Read into buffer: LSEEK FAILURE\n");
 		return -1;
 	}
 	if(read(fd, buff, num_bytes) == -1) {
-		printf("Read_Into_Buffer: Could not read value into buffer.\n");
+		printf("Read int buffer: READ FAILURE\n");
 		return -1;
 	}
 }
@@ -414,12 +432,9 @@ u32 block_buf_allocate(u32 block_size, arb_block *block ) {
 
 void free_block(arb_block block) {
 
-	free(block);
+	free(block.buff);
 }
 	
-
-	
-        
 void get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_descriptor gd_info, ext2_super_block main_super_block){
         
     inode_bitmap = (u8 *)malloc(main_super_block.s_inodes_count/8);
