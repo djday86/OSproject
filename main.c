@@ -12,6 +12,28 @@
 #define	EXT2_DIND_BLOCK			(EXT2_IND_BLOCK + 1)
 #define	EXT2_TIND_BLOCK			(EXT2_DIND_BLOCK + 1)
 #define	EXT2_N_BLOCKS			(EXT2_TIND_BLOCK + 1)
+//-- file format --
+#define EXT2_S_IFSOCK	0xC000	//socket
+#define EXT2_S_IFLNK	0xA000	//symbolic link
+#define EXT2_S_IFREG	0x8000	//regular file
+#define EXT2_S_IFBLK	0x6000	//block device
+#define EXT2_S_IFDIR	0x4000	//directory
+#define EXT2_S_IFCHR	0x2000	//character device
+#define EXT2_S_IFIFO	0x1000	//fifo
+//-- process execution user/group override --
+#define EXT2_S_ISUID	0x0800	//Set process User ID
+#define EXT2_S_ISGID	0x0400	//Set process Group ID
+#define EXT2_S_ISVTX	0x0200	//sticky bit
+//-- access rights --
+#define EXT2_S_IRUSR	0x0100	//user read
+#define EXT2_S_IWUSR	0x0080	//user write
+#define EXT2_S_IXUSR	0x0040	//user execute
+#define EXT2_S_IRGRP	0x0020	//group read
+#define EXT2_S_IWGRP	0x0010	//group write
+#define EXT2_S_IXGRP	0x0008	//group execute
+#define EXT2_S_IROTH	0x0004	//others read
+#define EXT2_S_IWOTH	0x0002	//others write
+#define EXT2_S_IXOTH	0x0001	//others execute
 
 
 
@@ -253,6 +275,10 @@ s32 main(s32 argc, char *argv[]) {
 	printf("\nFile System Check:");
 	printf("\n\nName of file: %s\n", argv[1]);
 	vdi.fd = open(argv[1], O_RDONLY);
+	if(vdi.fd == -1) {
+		printf("Error:  FILE DOES NOT EXIST");
+		return EXIT_FAILURE;
+	}
 
 	if(read_into_buffer(vdi.fd,&vdi.hdr,0,sizeof(vdi.hdr)) == -1) {
 		printf("Error.  VDI has not been read.\n");
@@ -318,20 +344,23 @@ s32 main(s32 argc, char *argv[]) {
 	if(block_buf_allocate(main_super_block.s_log_block_size, &temp_block) == -1) {
 		return EXIT_FAILURE;
 	}
-	printf("OK\n");
+
 
 	if(fetch_block(vdi.fd,&temp_block,0,main_super_block.s_log_block_size,vdi,start) == -1) {
 		printf("Error.");
 		return EXIT_FAILURE;
 	}
-	printf("OK\n");
 
-	
+	for(i=0;i<256;i++) {
+
+		printf("DATA: %u\n",temp_block.buff[i]);
+
+	}
 
 	
 	
 	free(vdi.map);
-	free(temp_block.buff);
+	
 
 	if(close(fd) == -1) {
 		printf("Error.\n");
@@ -347,18 +376,19 @@ u32 read_VDI_map(u32 fd, VDI_file *disk_info, u32 offset_blocks, u32 blocks_allo
 	disk_info->map = (u32 *)malloc(4*(blocks_allocated));
 
 	if(disk_info->map == NULL) {
-		printf("VDI Map Read: MEMORY FAILURE: COULD NOT READ INTO MEMORY");
+		printf("VDI Map Read: MEMORY FAILURE: COULD NOT READ INTO MEMORY\n");
 		return -1;
 	}
 
 	if(lseek(fd,offset_blocks,SEEK_SET) == -1) {
-		printf("VDI Map Read: LSEEK FAILURE");		
+		printf("VDI Map Read: LSEEK FAILURE\n");		
 		return -1;
 	}
 
 	if(read(fd, disk_info->map, 4*blocks_allocated) == -1) {
-		printf("VDI Map Read: READ FAILURE");
+		printf("VDI Map Read: READ FAILURE\n");
  		return -1;
+	}
 }
 
 u32 VDI_translate(u32 desired_byte, VDI_file disk_info) {
@@ -390,11 +420,11 @@ u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector){
 u32 get_bg_descriptor_table(u32 fd, s32 bg_number, ext2_super_block main_sb, bg_desc_table *bg_data, VDI_header disk_info) {
     
 	if(lseek(fd, disk_info.offset_data + 1024 + bg_number * main_sb.s_blocks_per_group * main_sb.s_log_block_size + main_sb.s_log_block_size , SEEK_SET) == -1) {
-		printf("Block group descriptor fetch: LSEEK FAILURE");
+		printf("Block group descriptor fetch: LSEEK FAILURE\n");
 		return -1;
 	}
 
-	if(read(fd, &bg_data, sizeof(bg_desc_table)) == -1) {
+	if(read(fd, bg_data->bg_descriptor, sizeof(bg_desc_table)) == -1) {
 		printf("Block group descriptor fetch:  READ FAILURE");		
 		return -1;
 	}
@@ -404,7 +434,7 @@ u32 get_bg_descriptor_table(u32 fd, s32 bg_number, ext2_super_block main_sb, bg_
 u32 fetch_block( u32 fd, arb_block *block, s32 num, u32 size, VDI_file disk,u32 start) {
 
 	u32 loc = VDI_translate(start + 1024 + (num * size), disk);
-	if(read_into_buffer(fd, block, loc, size) == -1) return -1;
+	if(read_into_buffer(fd, block->buff, loc, size) == -1) return -1;
 
 }
 
@@ -415,7 +445,7 @@ u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes) {
 		return -1;
 	}
 	if(read(fd, buff, num_bytes) == -1) {
-		printf("Read int buffer: READ FAILURE\n");
+		printf("Read into buffer: READ FAILURE\n");
 		return -1;
 	}
 }
@@ -435,45 +465,49 @@ void free_block(arb_block block) {
 	free(block.buff);
 }
 	
-void get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_descriptor gd_info, ext2_super_block main_super_block){
+void get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_desc_table table, ext2_super_block main_super_block, VDI_file file){
         
-    inode_bitmap = (u8 *)malloc(main_super_block.s_inodes_count/8);
+ 	inode_bitmap = (u8 *)malloc(main_super_block.s_inodes_count/8);
+	u32 inode_table_start;
+        u32 block_num; 
        
     
     for (i = 0; i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1; i++){
-        u32 inode_table_start = start + 1024 + gd_info[i].bg_inode_bitmap;
-        int block_num = inode_table_start/main_super_block.s_log_block_size 
-        lseek(fd, VDI_translate(inode_table_start, fd), SEEK_SET);
+        inode_table_start = start + 1024 + table.bg_descriptor[i].bg_inode_bitmap;
+        block_num = (inode_table_start/main_super_block.s_log_block_size); 
+        lseek(fd, VDI_translate(inode_table_start, file), SEEK_SET);
         read(fd, inode_bitmap, main_super_block.s_log_block_size);
     
         //fetch_block(fd, *inode_bitmap, block_num, main_super_block.s_log_block_size, disk_info, start);
         }
 }
 
-void get_block_bitmap(u32 fd, arb_block *block_bitmap,bg_descriptor gd_info, ext2_super_block main_super_block ){
+void get_block_bitmap(u32 fd, u32 start, arb_block *block_bitmap , bg_desc_table table, ext2_super_block main_super_block, VDI_file file ){
         
     block_bitmap = (u8 *)malloc(main_super_block.s_blocks_count/8);
+	u32 block_table_start;
        
     
     for (i = 0; i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1; i++){
-        u32 block_table_start = start + 1024 + gd_info[i].bg_block_bitmap;
+        block_table_start = start + 1024 + table.bg_descriptor[i].bg_block_bitmap;
         //int block_num = inode_table_start/main_super_block.s_log_block_size 
-        lseek(fd, VDI_translate(block_table_start, fd), SEEK_SET);
-        read(fd, block_bitmap, main_super_block.s_log_block_size)
+        lseek(fd, VDI_translate(block_table_start, file), SEEK_SET);
+        read(fd, block_bitmap, main_super_block.s_log_block_size);
     
         //fetch_block(fd, *inode_bitmap, block_num, main_super_block.s_log_block_size, disk_info, start);
         }
 }
 
-void get_inode_table(u32 fd, u32 start, bg_descriptor gd_info, ext2_super_block main_super_block, inode_table *i_table ) {
+void get_inode_table(u32 fd, u32 start, bg_desc_table table,arb_block *block_bitmap, ext2_super_block main_super_block, inode_table *i_table, VDI_file file ) {
     
     i_table =  malloc(sizeof(ext2_inode) * main_super_block.s_inodes_count);
-    
-    for (i = 0; i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1; i++){
-        u32 inode_table_start = start + 1024 + gd_info[i].bg_inode_table;
-        //int block_num = inode_table_start/main_super_block.s_log_block_size 
-        lseek(fd, VDI_translate(inode_table_start, fd), SEEK_SET);
-        read(fd, block_bitmap, main_super_block.s_log_block_size * 23);
+    u32 inode_table_start;
+	for (i = 0; i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1; i++) {
+		
+		inode_table_start = start + 1024 + table.bg_descriptor[i].bg_inode_table; 
+		lseek(fd, VDI_translate(inode_table_start, file), SEEK_SET);
+		read(fd, block_bitmap, main_super_block.s_log_block_size * 23);
+	}
     
 }
 
