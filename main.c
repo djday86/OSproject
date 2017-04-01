@@ -253,7 +253,7 @@ typedef struct {
 
 u32 read_VDI_map(u32 fd, VDI_file *disk_info, u32 offset_blocks, u32 blocks_allocated);
 u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector);
-u32 get_super_block(u32 fd, ext2_super_block *main_super_block, VDI_header disk_info);
+u32 get_super_block(u32 fd, ext2_super_block *main_sb, VDI_header disk_info);
 u32 VDI_translate(u32 desired_byte, VDI_file disk_info);
 u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes);
 u32 sb_copy_block(u32 block_num, u32 no_block_grps);
@@ -266,7 +266,7 @@ s32 main(s32 argc, char *argv[]) {
 	u32 start, no_block_grps;
 	u32 fd =0;
 	VDI_header disk_info;
-	ext2_super_block main_super_block;
+	ext2_super_block main_sb;
 	ext2_super_block backup_super_block;
 	VDI_file vdi;
 	BootSector boot_sector;
@@ -302,7 +302,7 @@ s32 main(s32 argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if(read_into_buffer(vdi.fd,&main_super_block,VDI_translate(1024+start,vdi),1024) == -1) {
+	if(read_into_buffer(vdi.fd,&main_sb,VDI_translate(1024+start,vdi),1024) == -1) {
 		printf("Error.");
 		return EXIT_FAILURE;
 	}
@@ -321,32 +321,32 @@ s32 main(s32 argc, char *argv[]) {
 	printf("Total # of pages allocated: %i.\n\n",vdi.hdr.blocks_allocated);
 
 	printf("Superblock:\n");
-	printf("Inodes: %u\n",main_super_block.s_inodes_count);
-	printf("Blocks: %u\n",main_super_block.s_blocks_count);
-	printf("Reserved Blocks: %u\n",main_super_block.s_r_blocks_count);
-	printf("Free Blocks: %u\n",main_super_block.s_free_blocks_count);
-	printf("Free iNodes: %u\n",main_super_block.s_free_inodes_count);
-	printf("First Data Block Location: %u\n",main_super_block.s_first_data_block);
-	main_super_block.s_log_block_size = 1024 << main_super_block.s_log_block_size;	
-	printf("Block Size: %u bytes\n", main_super_block.s_log_block_size);
-	printf("Fragment Size: %u\n",main_super_block.s_log_frag_size);
-	printf("Blocks per Group: %u\n",main_super_block.s_blocks_per_group);
-	printf("Fragments per Group: %u\n",main_super_block.s_frags_per_group);
-	printf("iNodes per Group: %u\n",main_super_block.s_inodes_per_group);
-	printf("Fragment Size: %u\n",main_super_block.s_log_frag_size);	
-	printf("The mysterious magical number: %x\n",main_super_block.s_magic);
+	printf("Inodes: %u\n",main_sb.s_inodes_count);
+	printf("Blocks: %u\n",main_sb.s_blocks_count);
+	printf("Reserved Blocks: %u\n",main_sb.s_r_blocks_count);
+	printf("Free Blocks: %u\n",main_sb.s_free_blocks_count);
+	printf("Free iNodes: %u\n",main_sb.s_free_inodes_count);
+	printf("First Data Block Location: %u\n",main_sb.s_first_data_block);
+	main_sb.s_log_block_size = 1024 << main_sb.s_log_block_size;	
+	printf("Block Size: %u bytes\n", main_sb.s_log_block_size);
+	printf("Fragment Size: %u\n",main_sb.s_log_frag_size);
+	printf("Blocks per Group: %u\n",main_sb.s_blocks_per_group);
+	printf("Fragments per Group: %u\n",main_sb.s_frags_per_group);
+	printf("iNodes per Group: %u\n",main_sb.s_inodes_per_group);
+	printf("Fragment Size: %u\n",main_sb.s_log_frag_size);	
+	printf("The mysterious magical number: %x\n",main_sb.s_magic);
 
-	if(main_super_block.s_blocks_count % main_super_block.s_blocks_per_group == 0) no_block_grps =  main_super_block.s_blocks_count / 					main_super_block.s_blocks_per_group;
-	else no_block_grps = (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1;
+	if(main_sb.s_blocks_count % main_sb.s_blocks_per_group == 0) no_block_grps =  main_sb.s_blocks_count / 					main_sb.s_blocks_per_group;
+	else no_block_grps = (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1;
 
 	printf("Total number of block groups: %u\n",no_block_grps);
 	
-	if(block_buf_allocate(main_super_block.s_log_block_size, &temp_block) == -1) {
+	if(block_buf_allocate(main_sb.s_log_block_size, &temp_block) == -1) {
 		return EXIT_FAILURE;
 	}
 
 
-	if(fetch_block(vdi.fd,&temp_block,0,main_super_block.s_log_block_size,vdi,start) == -1) {
+	if(fetch_block(vdi.fd,&temp_block,0,main_sb.s_log_block_size,vdi,start) == -1) {
 		printf("Error.");
 		return EXIT_FAILURE;
 	}
@@ -465,73 +465,93 @@ void free_block(arb_block block) {
 	free(block.buff);
 }
 	
-void get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_desc_table table, ext2_super_block main_super_block, VDI_file file){
+u32 get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_desc_table table, ext2_super_block main_sb, VDI_file file) {
         
- 	inode_bitmap = (u8 *)malloc(main_super_block.s_inodes_count/8);
+ 	inode_bitmap->buff = malloc(main_sb.s_inodes_count/8);
 	u32 inode_table_start;
         u32 block_num; 
        
     
-    for (i = 0; i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1; i++){
-        inode_table_start = start + 1024 + table.bg_descriptor[i].bg_inode_bitmap;
-        block_num = (inode_table_start/main_super_block.s_log_block_size); 
-        lseek(fd, VDI_translate(inode_table_start, file), SEEK_SET);
-        read(fd, inode_bitmap, main_super_block.s_log_block_size);
-    
-        //fetch_block(fd, *inode_bitmap, block_num, main_super_block.s_log_block_size, disk_info, start);
+	for (i = 0; i < (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1; i++) {
+
+		inode_table_start = start + 1024 + table.bg_descriptor[i].bg_inode_bitmap;
+		block_num = (inode_table_start/main_sb.s_log_block_size);
+	 
+		if(lseek(fd, VDI_translate(inode_table_start, file), SEEK_SET) == -1) {
+			printf("Get iNode Bitmap: LSEEK FAILURE\n");
+			return -1;
+		}
+
+		if(read(fd, inode_bitmap, main_sb.s_log_block_size) == -1) { 
+			printf("Get iNode Bitmap: READ FAILURE\n");
+			return -1;
+		}    
         }
 }
 
-void get_block_bitmap(u32 fd, u32 start, arb_block *block_bitmap , bg_desc_table table, ext2_super_block main_super_block, VDI_file file ){
+u32 get_block_bitmap(u32 fd, u32 start, arb_block *block_bitmap , bg_desc_table table, ext2_super_block main_sb, VDI_file file ){
         
-    block_bitmap = (u8 *)malloc(main_super_block.s_blocks_count/8);
+	block_bitmap = malloc(main_sb.s_blocks_count/8);
 	u32 block_table_start;
        
     
-    for (i = 0; i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1; i++){
-        block_table_start = start + 1024 + table.bg_descriptor[i].bg_block_bitmap;
-        //int block_num = inode_table_start/main_super_block.s_log_block_size 
-        lseek(fd, VDI_translate(block_table_start, file), SEEK_SET);
-        read(fd, block_bitmap, main_super_block.s_log_block_size);
-    
-        //fetch_block(fd, *inode_bitmap, block_num, main_super_block.s_log_block_size, disk_info, start);
+	for (i = 0; i < (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1; i++) { 
+		
+		block_table_start = start + 1024 + table.bg_descriptor[i].bg_block_bitmap;
+		 
+		if(lseek(fd, VDI_translate(block_table_start, file), SEEK_SET) == -1) {
+			printf("Get Block Bitmap: LSEEK FAILURE\n");
+			return -1;
+		}
+
+		if(read(fd, block_bitmap, main_sb.s_log_block_size) == -1) {
+			printf("Get Block Bitmap: READ FAILURE\n");
+			return -1;
+		}
         }
 }
 
-void get_inode_table(u32 fd, u32 start, bg_desc_table table,arb_block *block_bitmap, ext2_super_block main_super_block, inode_table *i_table, VDI_file file ) {
+u32 get_inode_table(u32 fd, u32 start, bg_desc_table table,arb_block *block_bitmap, ext2_super_block main_sb, inode_table *i_table, VDI_file file ) {
     
-    i_table =  malloc(sizeof(ext2_inode) * main_super_block.s_inodes_count);
+    i_table =  malloc(sizeof(ext2_inode) * main_sb.s_inodes_count);
     u32 inode_table_start;
-	for (i = 0; i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1; i++) {
+	for (i = 0; i < (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1; i++) {
 		
 		inode_table_start = start + 1024 + table.bg_descriptor[i].bg_inode_table; 
-		lseek(fd, VDI_translate(inode_table_start, file), SEEK_SET);
-		read(fd, block_bitmap, main_super_block.s_log_block_size * 23);
-	}
-    
+
+		if(lseek(fd, VDI_translate(inode_table_start, file), SEEK_SET) == -1) {
+			printf("Get iNode Table: LSEEK FAILURE\n");
+			return -1;
+		}
+
+		if(read(fd, block_bitmap, main_sb.s_log_block_size * 23) == -1) {
+			printf("Get iNode Table: READ FAILURE\n");
+			return -1;
+		}
+	}    
 }
 
 //void get_block_bitmap(struct ext2_inode *i_info, arb_block *block_bitmap,bg_descriptor gd_info, u32 start ){
 //        
 //    
-//    inode_bitmap = (u8 *)malloc(main_super_block.s_blocks_count/8);
+//    inode_bitmap = (u8 *)malloc(main_sb.s_blocks_count/8);
 //       
 //    
-//    for (i = 0, i < (main_super_block.s_blocks_count / main_super_block.s_blocks_per_group) + 1, i++){
+//    for (i = 0, i < (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1, i++){
 //        u32 inode_table_start = gd_info[i].bg_inode_table;
-//        int inode_index = (inode_num - 1) % main_super_block.s_inodes_per_group;
-//        int block_num = (inode_table_start + inode_index)/main_super_block.s_inodes_per_group
+//        int inode_index = (inode_num - 1) % main_sb.s_inodes_per_group;
+//        int block_num = (inode_table_start + inode_index)/main_sb.s_inodes_per_group
 //    
-//        fetch_block(fd, *inode_bitmap, block_num, main_super_block.s_log_block_size, disk_info, start);
+//        fetch_block(fd, *inode_bitmap, block_num, main_sb.s_log_block_size, disk_info, start);
 //        }
 ////    
-////    u32 inode_sector_offset = inode_index/(sector_size_per_bytes/main_super_block.s_inode_size);
+////    u32 inode_sector_offset = inode_index/(sector_size_per_bytes/main_sb.s_inode_size);
 ////    
 ////    
 ////    lseek(start + (inode_table_start * sectors_per_block) + inode_sector_offset, SEEK_SET);
 ////     read(fd, &i_info, inode_index);
 ////    u32 num_inodes_sector = sector_size_bytes / super.s_inode_size;
-////    u32 offset = ((inode_index % num_inodes_sector)) * main_super_block.s_inode_size; 
+////    u32 offset = ((inode_index % num_inodes_sector)) * main_sb.s_inode_size; 
 ////    i_info->i_mode = read_bytes(buf, offset + 0, 2);
 ////    i_info->i_size = read_bytes(buf, offset + 4, 4);
 ////    i_info->i_links_count = read_bytes(buf, offset + 26, 2);
