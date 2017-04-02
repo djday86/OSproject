@@ -259,6 +259,8 @@ u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes);
 u32 sb_copy_block(u32 block_num, u32 no_block_grps);
 u32 fetch_block( u32 fd, arb_block *buf, s32 block_num, u32 block_size, VDI_file disk_info, u32 start);
 u32 block_buf_allocate(u32 block_size, arb_block *block_buf );
+u32 get_bg_descriptor_table(u32 fd, u32 start, s32 bg_number, ext2_super_block sb, bg_desc_table *bg_data, VDI_file file, u32 no_blocks);
+u32 compare_sb(ext2_super_block a, ext2_super_block b);
 	
 
 s32 main(s32 argc, char *argv[]) {
@@ -267,7 +269,7 @@ s32 main(s32 argc, char *argv[]) {
 	u32 fd =0;
 	VDI_header disk_info;
 	ext2_super_block main_sb;
-	ext2_super_block backup_super_block;
+	ext2_super_block backup_sb;
 	VDI_file vdi;
 	BootSector boot_sector;
 	arb_block temp_block;
@@ -336,12 +338,12 @@ s32 main(s32 argc, char *argv[]) {
 	printf("Fragment Size: %u\n",main_sb.s_log_frag_size);	
 	printf("The mysterious magical number: %x\n",main_sb.s_magic);
 
-	if(main_sb.s_blocks_count % main_sb.s_blocks_per_group == 0) no_block_grps =  main_sb.s_blocks_count / 					main_sb.s_blocks_per_group;
+	if(main_sb.s_blocks_count % main_sb.s_blocks_per_group == 0) no_block_grps =  main_sb.s_blocks_count / 	main_sb.s_blocks_per_group;
 	else no_block_grps = (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1;
 
 	printf("Total number of block groups: %u\n",no_block_grps);
 	
-	if(block_buf_allocate(main_sb.s_log_block_size, &temp_block) == -1) {
+	/*if(block_buf_allocate(main_sb.s_log_block_size, &temp_block) == -1) {
 		return EXIT_FAILURE;
 	}
 
@@ -349,14 +351,22 @@ s32 main(s32 argc, char *argv[]) {
 	if(fetch_block(vdi.fd,&temp_block,0,main_sb.s_log_block_size,vdi,start) == -1) {
 		printf("Error.");
 		return EXIT_FAILURE;
+	}*/
+	i=0;
+	while(i<no_block_grps) {
+
+		if(read_into_buffer(vdi.fd,&backup_sb,VDI_translate(start+1024+(i*main_sb.s_log_block_size*main_sb.s_blocks_per_group),vdi),1024) == -1) {
+			printf("Error.");
+			return EXIT_FAILURE;
+		}
+
+		compare_sb(main_sb, backup_sb);
+
+		i = i * 7;
+		if(i == 0) i = 1;
+
+		
 	}
-
-	for(i=0;i<256;i++) {
-
-		printf("DATA: %u\n",temp_block.buff[i]);
-
-	}
-
 	
 	
 	free(vdi.map);
@@ -417,9 +427,11 @@ u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector){
                 
 }
 
-u32 get_bg_descriptor_table(u32 fd, s32 bg_number, ext2_super_block main_sb, bg_desc_table *bg_data, VDI_header disk_info) {
+u32 get_bg_descriptor_table(u32 fd, u32 start, s32 bg_number, ext2_super_block sb, bg_desc_table *bg_data, VDI_file file, u32 no_blocks) {
+
+	u32 loc = VDI_translate(start + 1024 + (bg_number * sb.s_log_block_size * sb.s_blocks_per_group), file);
     
-	if(lseek(fd, disk_info.offset_data + 1024 + bg_number * main_sb.s_blocks_per_group * main_sb.s_log_block_size + main_sb.s_log_block_size , SEEK_SET) == -1) {
+	/*if(lseek(fd,VDI_translate(start + 1024 + (bg_number * sb.s_log_block_size * sb.s_blocks_per_group)), SEEK_SET) == -1) {
 		printf("Block group descriptor fetch: LSEEK FAILURE\n");
 		return -1;
 	}
@@ -427,15 +439,24 @@ u32 get_bg_descriptor_table(u32 fd, s32 bg_number, ext2_super_block main_sb, bg_
 	if(read(fd, bg_data->bg_descriptor, sizeof(bg_desc_table)) == -1) {
 		printf("Block group descriptor fetch:  READ FAILURE");		
 		return -1;
+	}*/
+
+	if(read_into_buffer(fd,bg_data->bg_descriptor, loc, (no_blocks * sizeof(bg_descriptor))) == -1) {
+		printf("Get Block Group Descriptor Table: FAILURE\n");	
+		return -1;
 	}
 
 }
+//u32 allocate_bgt(
 
 u32 fetch_block( u32 fd, arb_block *block, s32 num, u32 size, VDI_file disk,u32 start) {
 
 	u32 loc = VDI_translate(start + 1024 + (num * size), disk);
-	if(read_into_buffer(fd, block->buff, loc, size) == -1) return -1;
 
+	if(read_into_buffer(fd, block->buff, loc, size) == -1) {
+		printf("Fetch Block Failure.\n");		
+		return -1;
+	}
 }
 
 u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes) {
@@ -497,9 +518,9 @@ u32 get_block_bitmap(u32 fd, u32 start, arb_block *block_bitmap , bg_desc_table 
     
 	for (i = 0; i < (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1; i++) { 
 		
-		block_table_start = start + 1024 + table.bg_descriptor[i].bg_block_bitmap;
+		block_table_start = VDI_translate(start + 1024 + table.bg_descriptor[i].bg_block_bitmap, file);
 		 
-		if(lseek(fd, VDI_translate(block_table_start, file), SEEK_SET) == -1) {
+		if(lseek(fd, block_table_start, SEEK_SET) == -1) {
 			printf("Get Block Bitmap: LSEEK FAILURE\n");
 			return -1;
 		}
@@ -529,6 +550,68 @@ u32 get_inode_table(u32 fd, u32 start, bg_desc_table table,arb_block *block_bitm
 			return -1;
 		}
 	}    
+}
+
+u32 compare_sb(ext2_super_block a, ext2_super_block b) {
+
+	printf("Comparing super blocks.\n");	
+
+	if(a.s_inodes_count != b.s_inodes_count) {
+		printf("Discrepancy found: iNode count is inaccurate.\n");
+		//return -1;
+	}
+	 if(a.s_blocks_count != b.s_blocks_count) {
+		printf("Discrepancy found: Total blocks count is inaccurate.\n");
+		//return -1;
+	}
+	if(a.s_r_blocks_count != b.s_r_blocks_count) {
+		printf("Discrepancy found: Reserved blocks count is inaccurate\n");
+		//return -1;
+	}	
+	if(a.s_first_data_block != b.s_first_data_block) {
+		printf("Discrepancy found: First data block address inaccurate\n");
+		//return -1;
+	}
+	if(a.s_log_block_size != b.s_log_block_size) {
+		printf("Discrepancy found: Block size inaccurate\n");
+		//return -1;
+	}
+	if(a.s_blocks_per_group != b.s_blocks_per_group) {
+		printf("Discrepancy found: Block per group inaccurate.\n");
+		//return -1;
+	}
+	if(a.s_frags_per_group != b.s_frags_per_group) {
+		printf("Discrepancy found: Fragments per group inaccurate.\n");
+		//return -1;
+	}
+	if(a.s_magic != b.s_magic) {
+		printf("Discrepancy found: Mysterious magical number inaccurate.\n");
+		//return -1;
+	}
+	if(a.s_minor_rev_level != b.s_minor_rev_level) {
+		printf("Discrepancy found: Minor revision level inaccurate.\n");
+		//return -1;
+	}
+	if(a.s_creator_os != b.s_creator_os) {
+		printf("Discrepancy found: Creator OS inaccurate.\n");
+		//return -1;
+	}
+	if(a.s_rev_level != b.s_rev_level) {
+		printf("Discrepancy found: Revision level inaccurate.\n");
+		//return -1;
+	}
+	if(a.s_first_ino != b.s_first_ino) {
+		printf("Discrepancy found: Address of first inode inaccurate.\n");
+		//return -1;
+	}
+	if(a.s_inode_size != b.s_inode_size) {
+		printf("Discrepancy found: iNode size inaccurate.\n");
+		//return -1;
+	}
+	else {
+		printf("Superblock: OK!\n");
+		return 0;
+	}
 }
 
 //void get_block_bitmap(struct ext2_inode *i_info, arb_block *block_bitmap,bg_descriptor gd_info, u32 start ){
