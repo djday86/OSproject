@@ -126,7 +126,7 @@ typedef struct {
     
 } bg_descriptor;
 
-typedef struct __attribute__((packed)) bg_desc_table {
+typedef struct __attribute__((packed)) {
 
 	bg_descriptor *bg_descriptor;
 
@@ -261,6 +261,9 @@ u32 fetch_block( u32 fd, arb_block *buf, s32 block_num, u32 block_size, VDI_file
 u32 block_buf_allocate(u32 block_size, arb_block *block_buf );
 u32 get_bg_descriptor_table(u32 fd, u32 start, s32 bg_number, ext2_super_block sb, bg_desc_table *bg_data, VDI_file file, u32 no_blocks);
 u32 compare_sb(ext2_super_block a, ext2_super_block b);
+u32 get_inode_table(u32 fd, u32 start, bg_desc_table table, ext2_super_block main_sb, inode_table *i_table, VDI_file file );
+u32 get_block_bitmap(u32 fd, u32 start, arb_block *block_bitmap , bg_desc_table table, ext2_super_block main_sb, VDI_file file );
+u32 get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_desc_table table, ext2_super_block main_sb, VDI_file file);
 	
 
 s32 main(s32 argc, char *argv[]) {
@@ -271,8 +274,12 @@ s32 main(s32 argc, char *argv[]) {
 	ext2_super_block main_sb;
 	ext2_super_block backup_sb;
 	VDI_file vdi;
+        inode_table i_table;
 	BootSector boot_sector;
+        bg_desc_table desc_table;
 	arb_block temp_block;
+        arb_block inode_bitmap;
+        arb_block block_bitmap;
 
 	printf("\nFile System Check:");
 	printf("\n\nName of file: %s\n", argv[1]);
@@ -367,7 +374,12 @@ s32 main(s32 argc, char *argv[]) {
 
 		
 	}
-	
+        
+        get_bg_descriptor_table(fd, start, 0, main_sb, &desc_table, file, no_block_grps);
+        
+        get_inode_bitmap(fd, start, *inode_bitmap, desc_table, main_sb, vdi);
+        
+        get_inode_table( fd,  start, desc_table, *block_bitmap, main_sb, &i_table, vdi );
 	
 	free(vdi.map);
 	
@@ -521,7 +533,7 @@ u32 get_block_bitmap(u32 fd, u32 start, arb_block *block_bitmap , bg_desc_table 
         }
 }
 
-u32 get_inode_table(u32 fd, u32 start, bg_desc_table table,arb_block *block_bitmap, ext2_super_block main_sb, inode_table *i_table, VDI_file file ) {
+u32 get_inode_table(u32 fd, u32 start, bg_desc_table table, ext2_super_block main_sb, inode_table *i_table, VDI_file file ) {
     
     i_table =  malloc(sizeof(ext2_inode) * main_sb.s_inodes_count);
     u32 inode_table_start;
@@ -534,7 +546,7 @@ u32 get_inode_table(u32 fd, u32 start, bg_desc_table table,arb_block *block_bitm
 			return -1;
 		}
 
-		if(read(fd, block_bitmap, main_sb.s_log_block_size * 23) == -1) {
+		if(read(fd, i_table, main_sb.s_log_block_size * 23) == -1) {
 			printf("Get iNode Table: READ FAILURE\n");
 			return -1;
 		}
