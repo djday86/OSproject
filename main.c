@@ -375,11 +375,13 @@ s32 main(s32 argc, char *argv[]) {
 		
 	}
         
-        get_bg_descriptor_table(fd, start, 0, main_sb, &desc_table, file, no_block_grps);
+        get_bg_descriptor_table(fd, start, 0, main_sb, &desc_table, vdi, no_block_grps);
         
-        get_inode_bitmap(fd, start, *inode_bitmap, desc_table, main_sb, vdi);
+        printf("Block 0 bitmap:{0}",desc_table.bg_descriptor[0].bg_block_bitmap);
         
-        get_inode_table( fd,  start, desc_table, *block_bitmap, main_sb, &i_table, vdi );
+        get_inode_bitmap(fd, start, &inode_bitmap, desc_table, main_sb, vdi);
+        
+        get_inode_table( fd,  start, desc_table, main_sb, &i_table, vdi );
 	
 	free(vdi.map);
 	
@@ -441,9 +443,23 @@ u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector){
 
 u32 get_bg_descriptor_table(u32 fd, u32 start, s32 bg_number, ext2_super_block sb, bg_desc_table *bg_data, VDI_file file, u32 no_blocks) {
 
+<<<<<<< HEAD
 	u32 loc = VDI_translate(start + 1024 + (bg_number * sb.s_log_block_size * sb.s_blocks_per_group), file);
+=======
+	u32 loc = VDI_translate(start + 1024 + 1024 + (bg_number * sb.s_log_block_size * sb.s_blocks_per_group), file);
+    
+	/*if(lseek(fd,VDI_translate(start + 1024 + (bg_number * sb.s_log_block_size * sb.s_blocks_per_group)), SEEK_SET) == -1) {
+		printf("Block group descriptor fetch: LSEEK FAILURE\n");
+		return -1;
+	}
 
-	if(read_into_buffer(fd,bg_data->bg_descriptor, loc, (no_blocks * sizeof(bg_descriptor))) == -1) {
+	if(read(fd, bg_data->bg_descriptor, sizeof(bg_desc_table)) == -1) {
+		printf("Block group descriptor fetch:  READ FAILURE");		
+		return -1;
+	}*/
+>>>>>>> b7f4cf1f0b49517648386da9c273a5524a6e5788
+
+	if(read_into_buffer(fd, &bg_data, loc, (no_blocks * sizeof(bg_descriptor))) == -1) {
 		printf("Get Block Group Descriptor Table: FAILURE\n");	
 		return -1;
 	}
