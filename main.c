@@ -362,7 +362,7 @@ s32 main(s32 argc, char *argv[]) {
 
 		compare_sb(main_sb, backup_sb);
 
-		i = i * 7;
+		i = i * 5;
 		if(i == 0) i = 1;
 
 		
@@ -430,22 +430,11 @@ u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector){
 u32 get_bg_descriptor_table(u32 fd, u32 start, s32 bg_number, ext2_super_block sb, bg_desc_table *bg_data, VDI_file file, u32 no_blocks) {
 
 	u32 loc = VDI_translate(start + 1024 + (bg_number * sb.s_log_block_size * sb.s_blocks_per_group), file);
-    
-	/*if(lseek(fd,VDI_translate(start + 1024 + (bg_number * sb.s_log_block_size * sb.s_blocks_per_group)), SEEK_SET) == -1) {
-		printf("Block group descriptor fetch: LSEEK FAILURE\n");
-		return -1;
-	}
-
-	if(read(fd, bg_data->bg_descriptor, sizeof(bg_desc_table)) == -1) {
-		printf("Block group descriptor fetch:  READ FAILURE");		
-		return -1;
-	}*/
 
 	if(read_into_buffer(fd,bg_data->bg_descriptor, loc, (no_blocks * sizeof(bg_descriptor))) == -1) {
 		printf("Get Block Group Descriptor Table: FAILURE\n");	
 		return -1;
 	}
-
 }
 //u32 allocate_bgt(
 
@@ -554,7 +543,14 @@ u32 get_inode_table(u32 fd, u32 start, bg_desc_table table,arb_block *block_bitm
 
 u32 compare_sb(ext2_super_block a, ext2_super_block b) {
 
-	printf("Comparing super blocks.\n");	
+	printf("Comparing super blocks.\n");
+	if(a.s_log_block_size < 1024) {
+		a.s_log_block_size = 1024 << a.s_log_block_size;
+	}
+
+	if(b.s_log_block_size < 1024) {
+		b.s_log_block_size = 1024 << b.s_log_block_size;
+	}
 
 	if(a.s_inodes_count != b.s_inodes_count) {
 		printf("Discrepancy found: iNode count is inaccurate.\n");
