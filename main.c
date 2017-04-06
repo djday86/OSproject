@@ -259,7 +259,7 @@ u32 read_into_buffer(u32 fd, void *buff, u32 position, u32 num_bytes);
 u32 sb_copy_block(u32 block_num, u32 no_block_grps);
 u32 fetch_block( u32 fd, arb_block *buf, s32 block_num, u32 block_size, VDI_file disk_info, u32 start);
 u32 block_buf_allocate(u32 block_size, arb_block *block_buf );
-u32 get_bg_descriptor_table(u32 fd, u32 start, s32 bg_number, ext2_super_block sb, bg_desc_table *bg_data, VDI_file file, u32 no_blocks);
+u32 get_bg_descriptor_table(u32 fd, u32 start, s32 bg_number, ext2_super_block sb, bg_descriptor *bg_data, VDI_file file, u32 no_blocks);
 u32 compare_sb(ext2_super_block a, ext2_super_block b);
 u32 get_inode_table(u32 fd, u32 start, bg_desc_table table, ext2_super_block main_sb, inode_table *i_table, VDI_file file );
 u32 get_block_bitmap(u32 fd, u32 start, arb_block *block_bitmap , bg_desc_table table, ext2_super_block main_sb, VDI_file file );
@@ -347,6 +347,8 @@ s32 main(s32 argc, char *argv[]) {
 
 	if(main_sb.s_blocks_count % main_sb.s_blocks_per_group == 0) no_block_grps =  main_sb.s_blocks_count / 	main_sb.s_blocks_per_group;
 	else no_block_grps = (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1;
+        
+        bg_descriptor bg_desc_table[no_block_grps];
 
 	printf("Total number of block groups: %u\n",no_block_grps);
 	
@@ -375,13 +377,13 @@ s32 main(s32 argc, char *argv[]) {
 		
 	}
         
-        get_bg_descriptor_table(fd, start, 0, main_sb, &desc_table, vdi, no_block_grps);
+        get_bg_descriptor_table(vdi.fd, start, 0, main_sb, bg_desc_table, vdi, no_block_grps);
         
-        printf("Block 0 bitmap:{0}",desc_table.bg_descriptor[0].bg_block_bitmap);
+        printf("Block 0 bitmap:{0}",bg_desc_table[0].bg_block_bitmap);
         
-        get_inode_bitmap(fd, start, &inode_bitmap, desc_table, main_sb, vdi);
+        get_inode_bitmap(vdi.fd, start, &inode_bitmap, desc_table, main_sb, vdi);
         
-        get_inode_table( fd,  start, desc_table, main_sb, &i_table, vdi );
+        get_inode_table( vdi.fd,  start, desc_table, main_sb, &i_table, vdi );
 	
 	free(vdi.map);
 	
@@ -441,10 +443,11 @@ u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector){
                 
 }
 
-u32 get_bg_descriptor_table(u32 fd, u32 start, s32 bg_number, ext2_super_block sb, bg_desc_table *bg_data, VDI_file file, u32 no_blocks) {
+u32 get_bg_descriptor_table(u32 fd, u32 start, s32 bg_number, ext2_super_block sb, bg_descriptor *bg_data, VDI_file file, u32 no_blocks) {
 
 	u32 loc = VDI_translate(start + 1024 + 1024 + (bg_number * sb.s_log_block_size * sb.s_blocks_per_group), file);
-    
+        //bg_data->bg_descriptor =  malloc(sizeof(u32)* no_blocks);
+        
 	/*if(lseek(fd,VDI_translate(start + 1024 + (bg_number * sb.s_log_block_size * sb.s_blocks_per_group)), SEEK_SET) == -1) {
 		printf("Block group descriptor fetch: LSEEK FAILURE\n");
 		return -1;
