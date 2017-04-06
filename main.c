@@ -269,7 +269,7 @@ s32 main(s32 argc, char *argv[]) {
 	VDI_file vdi;
   inode_table i_table;
 	BootSector boot_sector;
-  bg_descriptor desc_table;
+  bg_descriptor *desc_table;
 	arb_block temp_block;
   arb_block inode_bitmap;
   arb_block block_bitmap;
@@ -369,12 +369,12 @@ s32 main(s32 argc, char *argv[]) {
 
 
 	}
+	desc_table = (bg_descriptor*)malloc(sizeof(bg_descriptor)*no_block_grps);
+  get_bg_descriptor_table(vdi.fd, start, 0, main_sb, desc_table, vdi, no_block_grps);
 
-        get_bg_descriptor_table(vdi.fd, start, 0, main_sb, bg_desc_table, vdi, no_block_grps);
+        //printf("Block 0 bitmap:{0}",bg_desc_table[0].bg_block_bitmap);
 
-        printf("Block 0 bitmap:{0}",bg_desc_table[0].bg_block_bitmap);
-
-        get_inode_bitmap(vdi.fd, start, &inode_bitmap, desc_table, main_sb, vdi);
+        //get_inode_bitmap(vdi.fd, start, &inode_bitmap, desc_table, main_sb, vdi);
 
       //  get_inode_table( vdi.fd,  start, desc_table, main_sb, &i_table, vdi );
 
@@ -496,7 +496,7 @@ void free_block(arb_block block) {
 	free(block.buff);
 }
 
-u32 get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_descriptor table, ext2_super_block main_sb, VDI_file file) {
+/*u32 get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_descriptor table, ext2_super_block main_sb, VDI_file file) {
 
  	//inode_bitmap->buff = malloc(main_sb.s_inodes_count/8);
 	u32 inode_table_start;
@@ -518,9 +518,9 @@ u32 get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_descriptor t
 			return -1;
 		}
         }
-}
+}*/
 
-u32 get_block_bitmap(u32 fd, u32 start, arb_block *block_bitmap , bg_descriptor table, ext2_super_block main_sb, VDI_file file ){
+/*u32 get_block_bitmap(u32 fd, u32 start, arb_block *block_bitmap , bg_descriptor table, ext2_super_block main_sb, VDI_file file ){
 
 	block_bitmap = malloc(main_sb.s_blocks_count/8);
 	u32 block_table_start;
@@ -540,9 +540,9 @@ u32 get_block_bitmap(u32 fd, u32 start, arb_block *block_bitmap , bg_descriptor 
 			return -1;
 		}
         }
-}
+}*/
 
-u32 get_inode_table(u32 fd, u32 start, bg_desc_table table, ext2_super_block main_sb, inode_table *i_table, VDI_file file ) {
+/*u32 get_inode_table(u32 fd, u32 start, bg_descriptor table, ext2_super_block main_sb, inode_table *i_table, VDI_file file ) {
 
     i_table =  malloc(sizeof(ext2_inode) * main_sb.s_inodes_count);
     u32 inode_table_start;
@@ -560,7 +560,7 @@ u32 get_inode_table(u32 fd, u32 start, bg_desc_table table, ext2_super_block mai
 			return -1;
 		}
 	}
-}
+}*/
 
 u32 compare_sb(ext2_super_block a, ext2_super_block b) {
 
