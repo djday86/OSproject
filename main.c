@@ -445,9 +445,7 @@ u32 get_partition_details(u32 fd, VDI_file disk_info, BootSector boot_sector){
 
 u32 get_bg_descriptor_table(u32 fd, u32 start, s32 bg_number, ext2_super_block sb, bg_descriptor *bg_data, VDI_file file, u32 no_blocks) {
 
-<<<<<<< HEAD
-	u32 loc = VDI_translate(start + 1024 + (bg_number * sb.s_log_block_size * sb.s_blocks_per_group), file);
-=======
+
 	u32 loc = VDI_translate(start + 1024 + 1024 + (bg_number * sb.s_log_block_size * sb.s_blocks_per_group), file);
         //bg_data->bg_descriptor =  malloc(sizeof(u32)* no_blocks);
         
@@ -460,9 +458,8 @@ u32 get_bg_descriptor_table(u32 fd, u32 start, s32 bg_number, ext2_super_block s
 		printf("Block group descriptor fetch:  READ FAILURE");		
 		return -1;
 	}*/
->>>>>>> b7f4cf1f0b49517648386da9c273a5524a6e5788
 
-	if(read_into_buffer(fd, &bg_data, loc, (no_blocks * sizeof(bg_descriptor))) == -1) {
+	if(read_into_buffer(fd, bg_data, loc, (no_blocks * sizeof(bg_descriptor))) == -1) {
 		printf("Get Block Group Descriptor Table: FAILURE\n");	
 		return -1;
 	}
