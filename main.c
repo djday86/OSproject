@@ -638,6 +638,53 @@ u32 compare_sb(ext2_super_block a, ext2_super_block b) {
 	}
 }
 
+u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b, u32 no_block_grps) {
+
+	printf("Comparing Block Group Descriptor Tables.\n");
+        
+        for(int i = 0; i < no_block_grps; i++){
+
+            if(a[i].bg_block_bitmap != b[i].bg_block_bitmap) {
+                    printf("Discrepancy found in Block Group Descriptor {0}: Block bitmap is inaccurate.\n",i);
+                    //return -1;
+            }
+             if(a[i].bg_inode_bitmap != b[i].bg_inode_bitmap) {
+                     printf("Discrepancy found in Block Group Descriptor {0}: Inode bitmap is inaccurate.\n",i);
+
+                    //return -1;
+            }
+            if(a[i].bg_inode_table != b[i].bg_inode_table) {
+                    printf("Discrepancy found in Block Group Descriptor {0}: Inode table is inaccurate.\n",i);
+                    //return -1;
+            }	
+            if(a[i].bg_free_blocks != b[i].bg_free_blocks) {
+                    printf("Discrepancy found in Block Group Descriptor {0}: Free inode count is inaccurate.\n",i);
+                    //return -1;
+            }
+            if(a[i].bg_free_inodes != b[i].bg_free_inodes) {
+                    printf("Discrepancy found in Block Group Descriptor {0}: Free inode count is inaccurate.\n",i);
+                    //return -1;
+            }
+            if(a[i].bg_used_dirs_count != b[i].bg_used_dirs_count) {
+                    printf("Discrepancy found in Block Group Descriptor {0}: Used directories count is inaccurate.\n",i);
+                    //return -1;
+            }
+            if(a[i].bg_pad != b[i].bg_pad) {
+                    printf("Discrepancy found in Block Group Descriptor {0}: Block group pad is inaccurate.\n",i);
+                    //return -1;
+            }
+            if(a[i].bg_reserved != b[i].bg_reserved) {
+                    printf("Discrepancy found in Block Group Descriptor {0}: Reserved blocks count is inaccurate.\n",i);
+                    //return -1;
+            }
+            
+            else {
+                    printf("Block Group Descriptor Table: OK!\n");
+                    return 0;
+            }
+        }
+}
+
 //void get_block_bitmap(struct ext2_inode *i_info, arb_block *block_bitmap,bg_descriptor gd_info, u32 start ){
 //        
 //    
