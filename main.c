@@ -275,6 +275,7 @@ s32 main(s32 argc, char *argv[]) {
   inode_table i_table;
 	BootSector boot_sector;
   bg_descriptor *desc_table;
+	bg_descriptor *temp_desc;
 	arb_block temp_block;
   arb_block inode_bitmap;
   arb_block block_bitmap;
