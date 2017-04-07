@@ -264,6 +264,7 @@ u32 compare_sb(ext2_super_block a, ext2_super_block b);
 u32 get_inode_table(u32 fd, u32 start, bg_desc_table table, ext2_super_block main_sb, inode_table *i_table, VDI_file file );
 u32 get_block_bitmap(u32 fd, u32 start, arb_block *block_bitmap , bg_desc_table table, ext2_super_block main_sb, VDI_file file );
 u32 get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_desc_table table, ext2_super_block main_sb, VDI_file file);
+u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b, u32 no_block_grps);
 	
 
 s32 main(s32 argc, char *argv[]) {
@@ -348,7 +349,7 @@ s32 main(s32 argc, char *argv[]) {
 	if(main_sb.s_blocks_count % main_sb.s_blocks_per_group == 0) no_block_grps =  main_sb.s_blocks_count / 	main_sb.s_blocks_per_group;
 	else no_block_grps = (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1;
         
-        bg_descriptor bg_desc_table[no_block_grps];
+        bg_descriptor *bg_desc_table = malloc(main_sb.s_log_block_size);
 
 	printf("Total number of block groups: %u\n",no_block_grps);
 	
@@ -449,17 +450,17 @@ u32 get_bg_descriptor_table(u32 fd, u32 start, s32 bg_number, ext2_super_block s
 	u32 loc = VDI_translate(start + 1024 + 1024 + (bg_number * sb.s_log_block_size * sb.s_blocks_per_group), file);
         //bg_data->bg_descriptor =  malloc(sizeof(u32)* no_blocks);
         
-	/*if(lseek(fd,VDI_translate(start + 1024 + (bg_number * sb.s_log_block_size * sb.s_blocks_per_group)), SEEK_SET) == -1) {
-		printf("Block group descriptor fetch: LSEEK FAILURE\n");
-		return -1;
-	}
+//	if(lseek(fd, loc , SEEK_SET) == -1) {
+//		printf("Block group descriptor fetch: LSEEK FAILURE\n");
+//		return -1;
+//	}
+//
+//	if(read(fd, &bg_data,  no_blocks * sizeof(bg_descriptor) == -1) {
+//		printf("Block group descriptor fetch:  READ FAILURE");		
+//		return -1;
+//	}
 
-	if(read(fd, bg_data->bg_descriptor, sizeof(bg_desc_table)) == -1) {
-		printf("Block group descriptor fetch:  READ FAILURE");		
-		return -1;
-	}*/
-
-	if(read_into_buffer(fd, bg_data, loc, (no_blocks * sizeof(bg_descriptor))) == -1) {
+	if(read_into_buffer(fd, &bg_data, loc, no_blocks * sizeof(bg_descriptor)) == -1) {
 		printf("Get Block Group Descriptor Table: FAILURE\n");	
 		return -1;
 	}
