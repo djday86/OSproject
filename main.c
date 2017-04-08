@@ -270,11 +270,11 @@ u8 *temp_block;
 s32 main(s32 argc, char *argv[]) {
 
 	/*
-	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-	====================================================================
+	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+	===========================================================
 	MAIN
-	====================================================================
-	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+	===========================================================
+	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	*/
 	u32 no_block_grps;
 	u32 fd =0;
@@ -360,18 +360,13 @@ s32 main(s32 argc, char *argv[]) {
 
 
   get_bg_descriptor_table(desc_table);
-
-	for(i=0;i<vdi.no_groups;i++) {
+	printf("SIZE: %i\n", sizeof(desc_table));
+	for(i=0;i<1;i++) {
 		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
 	}
 
-        //printf("Block 0 bitmap:{0}",bg_desc_table[0].bg_block_bitmap);
-
-        //get_inode_bitmap(vdi.fd, start, &inode_bitmap, desc_table, main_sb, vdi);
-
-      //  get_inode_table( vdi.fd,  start, desc_table, main_sb, &i_table, vdi );
-
 	free(vdi.map);
+	free(desc_table);
 
 
 	if(close(fd) == -1) {
@@ -383,11 +378,11 @@ s32 main(s32 argc, char *argv[]) {
 
 }
 /*
-________________________________________________________________________
+
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-====================================================================
+=======================================
 FUNCTIONS
-=====================================================================
+=======================================
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 */
@@ -437,17 +432,23 @@ u32 get_partition_details(BootSector boot_sector){
 }
 
 s32 get_bg_descriptor_table(bg_descriptor *bg_data) {
-
+printf("Here:\n");
 	u8 *temp = (u8*)malloc(vdi.block_size);
 	bg_data = (bg_descriptor*)malloc(sizeof(bg_descriptor)*vdi.no_groups);
 
-	fetch_block(1,temp);
+	if(vdi.block_size > 1024) {
 
-	printf("SIZEOF: %lu %lu\n",sizeof(temp),sizeof(bg_data));
-	if(vdi.block_size > 1024)
-		memcpy(bg_data, temp+1024, (sizeof(bg_descriptor)*vdi.no_groups));
-	else
+		fetch_block(1,temp);
 		memcpy(bg_data, temp, (sizeof(bg_descriptor)*vdi.no_groups));
+		printf("HERE:\n");
+	}
+
+	else {
+
+		fetch_block(2,temp);
+		memcpy(bg_data, temp, (sizeof(bg_descriptor)*vdi.no_groups));
+		printf("HEREO\n");
+	}
 
 	free(temp);
 }
