@@ -244,6 +244,10 @@ typedef struct {
 
 } arb_block;
 
+typedef struct{
+    
+} inode_info;
+
 
 u32 read_VDI_map();
 u32 get_partition_details(BootSector boot_sector);
@@ -364,6 +368,10 @@ s32 main(s32 argc, char *argv[]) {
 	for(i=0;i<1;i++) {
 		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
 	}
+        
+        bg_descriptor *bg_desc_table = (bg_descriptor*)malloc(main_sb.s_log_block_size);
+        u8 *inode_bitmap = (u8*)malloc(main_sb.s_log_block_size);
+        u8 *block_bitmap = (u8*)malloc(main_sb.s_log_block_size);
 
 	free(vdi.map);
 	free(desc_table);
@@ -504,50 +512,33 @@ u32 block_buf_allocate(u32 block_size, arb_block *block ) {
 	}
 }
 
-u32 get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_descriptor *table, ext2_super_block main_sb, VDI_file file) {
-
-	u32 inode_table_start;
-  u32 block_num;
+u32 get_inode_bitmap(u32 fd, u32 bock_group, u8 *inode_bitmap, bg_descriptor *table, ext2_super_block main_sb, VDI_file file) {
 
 
-	for (i = 0; i < (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1; i++) {
 
-		inode_table_start = start + 1024 + table[i].bg_inode_bitmap;
-		block_num = (inode_table_start/main_sb.s_log_block_size);
+	//for (i = 0; i < (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1; i++) {
 
-		if(lseek(fd, VDI_translate(inode_table_start), SEEK_SET) == -1) {
-			printf("Get iNode Bitmap: LSEEK FAILURE\n");
-			return -1;
-		}
+		
+		block_num = table[block_group].bg_inode_bitmap;
 
-		if(read(fd, inode_bitmap, main_sb.s_log_block_size) == -1) {
-			printf("Get iNode Bitmap: READ FAILURE\n");
-			return -1;
-		}
-        }
+		fetch_block(block_num, inode_bitmap);
+        //}
 }
 
-/*u32 get_block_bitmap(u32 fd, u32 start, arb_block *block_bitmap , bg_descriptor table, ext2_super_block main_sb, VDI_file file ){
+u32 get_block_bitmap(u32 fd, u32 bock_group, u8 *block_bitmap, bg_descriptor *table, ext2_super_block main_sb, VDI_file file ){
 
-	block_bitmap = malloc(main_sb.s_blocks_count/8);
-	u32 block_table_start;
+	
 
 
-	for (i = 0; i < (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1; i++) {
+	//for (i = 0; i < (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1; i++) {
 
-		block_table_start = VDI_translate(start + 1024 + table.bg_descriptor[i].bg_block_bitmap, file);
+	
 
-		if(lseek(fd, block_table_start, SEEK_SET) == -1) {
-			printf("Get Block Bitmap: LSEEK FAILURE\n");
-			return -1;
-		}
+		block_num = table[block_group].bg_block_bitmap;
 
-		if(read(fd, block_bitmap, main_sb.s_log_block_size) == -1) {
-			printf("Get Block Bitmap: READ FAILURE\n");
-			return -1;
-		}
-        }
-}*/
+		fetch_block(block_num, inode_bitmap);
+        //}
+}
 
 /*u32 get_inode_table(u32 fd, u32 start, bg_descriptor table, ext2_super_block main_sb, inode_table *i_table, VDI_file file ) {
 
@@ -568,6 +559,20 @@ u32 get_inode_bitmap(u32 fd, u32 start, arb_block *inode_bitmap, bg_descriptor *
 		}
 	}
 }*/
+
+get_inode(u32 start, u32 inode_num, bg_descriptor *table, ext2_super_block main_sb, inode_info* inode ){
+    u32 group;
+    u32 inode_in_block;
+    u32 start;
+    u32 block_num;
+    u32 inodes_per_block = sizeof(inode_info)/main_sb.s_log_block_size;
+    
+    inode_num--;
+    group = inode_num/main_sb.s_inodes_per_group;
+    inode_in_block = inode_num%main_sb.s_inodes_per_block;
+    start = table[group].bg_inode_table;
+    block_num = (start + inode_in_block)/main_sb.s_inodes_per_block;
+}
 
 u32 compare_sb(ext2_super_block a, ext2_super_block b) {
 
