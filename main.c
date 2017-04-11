@@ -245,6 +245,58 @@ typedef struct {
 } arb_block;
 
 typedef struct{
+        s16	i_mode;		/* File mode */
+	s16	i_uid;		/* Low 16 bits of Owner Uid */
+	s32	i_size;		/* Size in bytes */
+	s32	i_atime;	/* Access time */
+	s32	i_ctime;	/* Creation time */
+	s32	i_mtime;	/* Modification time */
+	s32	i_dtime;	/* Deletion Time */
+	s16	i_gid;		/* Low 16 bits of Group Id */
+	s16	i_links_count;	/* Links count */
+	s32	i_blocks;	/* Blocks count */
+	s32	i_flags;	/* File flags */
+	union {
+		struct {
+			s32  l_i_reserved1;
+		} linux1;
+		struct {
+			s32  h_i_translator;
+		} hurd1;
+		struct {
+			s32  m_i_reserved1;
+		} masix1;
+	} osd1;				/* OS dependent 1 */
+	s32	i_block[EXT2_N_BLOCKS];/* Pointers to blocks */
+	s32	i_generation;	/* File version (for NFS) */
+	s32	i_file_acl;	/* File ACL */
+	s32	i_dir_acl;	/* Directory ACL */
+	s32	i_faddr;	/* Fragment address */
+	union {
+		struct {
+			u8	l_i_frag;	/* Fragment number */
+			u8	l_i_fsize;	/* Fragment size */
+			u16	i_pad1;
+			s16	l_i_uid_high;	/* these 2 fields    */
+			s16	l_i_gid_high;	/* were reserved2[0] */
+			u32	l_i_reserved2;
+		} linux2;
+		struct {
+			u8	h_i_frag;	/* Fragment number */
+			u8	h_i_fsize;	/* Fragment size */
+			s16	h_i_mode_high;
+			s16	h_i_uid_high;
+			s16	h_i_gid_high;
+			s32	h_i_author;
+		} hurd2;
+		struct {
+			u8	m_i_frag;	/* Fragment number */
+			u8	m_i_fsize;	/* Fragment size */
+			u16	m_pad1;
+			u32	m_i_reserved2[2];
+		} masix2;
+	} osd2;				/* OS dependent 2 */
+
     
 } inode_info;
 
@@ -512,7 +564,7 @@ u32 block_buf_allocate(u32 block_size, arb_block *block ) {
 	}
 }
 
-u32 get_inode_bitmap(u32 fd, u32 bock_group, u8 *inode_bitmap, bg_descriptor *table, ext2_super_block main_sb, VDI_file file) {
+u32 get_inode_bitmap(u32 fd, u32 bock_group, u8 *inode_bitmap, bg_descriptor *table, ext2_super_block main_sb) {
 
 
 
@@ -571,7 +623,9 @@ get_inode(u32 start, u32 inode_num, bg_descriptor *table, ext2_super_block main_
     group = inode_num/main_sb.s_inodes_per_group;
     inode_in_block = inode_num%main_sb.s_inodes_per_block;
     start = table[group].bg_inode_table;
-    block_num = (start + inode_in_block)/main_sb.s_inodes_per_block;
+    block_num = start + inode_in_block/inodes_per_block;
+    
+    fetch_block(block_num, vdi );
 }
 
 u32 compare_sb(ext2_super_block a, ext2_super_block b) {
