@@ -322,6 +322,11 @@ s32 vdi_read(void *buff);
 
 VDI_file vdi;
 u8 *temp_block;
+u32 no_block_grps;
+u32 fd =0;
+ext2_super_block main_sb;
+bg_descriptor *desc_table;
+	
 
 s32 main(s32 argc, char *argv[]) {
 
@@ -332,13 +337,10 @@ s32 main(s32 argc, char *argv[]) {
 	===========================================================
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	*/
-	u32 no_block_grps;
-	u32 fd =0;
-	ext2_super_block main_sb;
-	ext2_super_block backup_sb;
-  inode_table i_table;
+    ext2_super_block backup_sb;
+    inode_table i_table;
 	BootSector boot_sector;
-  bg_descriptor *desc_table;
+    
 
 
 	printf("\nFile System Check:");
@@ -617,15 +619,16 @@ get_inode(u32 start, u32 inode_num, bg_descriptor *table, ext2_super_block main_
     u32 inode_in_block;
     u32 start;
     u32 block_num;
-    u32 inodes_per_block = sizeof(inode_info)/main_sb.s_log_block_size;
+    arb_block block_buf.buff = (u8*)malloc(main_sb.s_log_block_size);
+    //u32 inodes_per_block = sizeof(inode_info)/main_sb.s_log_block_size;
     
     inode_num--;
     group = inode_num/main_sb.s_inodes_per_group;
-    inode_in_block = inode_num%main_sb.s_inodes_per_block;
+    inode_in_block = inode_num%main_sb.s_inodes_per_group;
     start = table[group].bg_inode_table;
-    block_num = start + inode_in_block/inodes_per_block;
+    block_num = start + inode_in_block/main_sb.inodes_per_block_group;
     
-    fetch_block(block_num, vdi );
+    fetch_block(block_num, block_buf );
 }
 
 u32 compare_sb(ext2_super_block a, ext2_super_block b) {
@@ -744,33 +747,69 @@ u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b, u32 no_block_grps)
         }
 }
 
+get_bit(u8 *bitmap, int bit_num) {
+    int i;
+    int j;
+    
+    i = bit_num/8;
+    j = bit_num%8;
+    
+    return bitmap[i] & (1 << j);
+}
 
+get_used_blocks(int* user_block_bitmap, inode_info *inode){
+    u32 *i_block = (u32*)malloc(sizeof(u32)* 15)
+    memcopy(i_block, inode.i_block, sizeof(inode.i_block));
+    array_size = inode.i_blocks/(2 << main_sb.s_log_block_size);
+    for (int i = 0; i < 12; i++)
+        user_block_bitmap[i_block[i]] = 1; 
+    
+    get_array_final(i_block[12], user_block_bitmap, array_size);
+    get_array_1(i_block[13], user_block_bitmap, array_size);
+    get_array_2 (i_block[14], user_block_bitmap, array_size);
+}
 
-//void get_block_bitmap(struct ext2_inode *i_info, arb_block *block_bitmap,bg_descriptor gd_info, u32 start ){
-//
-//
-//    inode_bitmap = (u8 *)malloc(main_sb.s_blocks_count/8);
-//
-//
-//    for (i = 0, i < (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1, i++){
-//        u32 inode_table_start = gd_info[i].bg_inode_table;
-//        int inode_index = (inode_num - 1) % main_sb.s_inodes_per_group;
-//        int block_num = (inode_table_start + inode_index)/main_sb.s_inodes_per_group
-//
-//        fetch_block(fd, *inode_bitmap, block_num, main_sb.s_log_block_size, disk_info, start);
-//        }
-////
-////    u32 inode_sector_offset = inode_index/(sector_size_per_bytes/main_sb.s_inode_size);
-////
-////
-////    lseek(start + (inode_table_start * sectors_per_block) + inode_sector_offset, SEEK_SET);
-////     read(fd, &i_info, inode_index);
-////    u32 num_inodes_sector = sector_size_bytes / super.s_inode_size;
-////    u32 offset = ((inode_index % num_inodes_sector)) * main_sb.s_inode_size;
-////    i_info->i_mode = read_bytes(buf, offset + 0, 2);
-////    i_info->i_size = read_bytes(buf, offset + 4, 4);
-////    i_info->i_links_count = read_bytes(buf, offset + 26, 2);
-////    for(int i = 0; i < 15; i++){
-////        i_info->i_block[i] = read_bytes(buf, offset + 40 + (i * 4), 4);
-//
-//}
+get_array_final( int block_num, int* user_block_bitmap, int array_size){
+    arb_block block_buf.buff = (u8*)malloc(main_sb.s_log_block_size);
+    u32 block_array[array_size];
+    fetch_block(block_num, block_buf);
+    memcopy(block_array, block_buf, sizeof(u32)*array_size);
+    
+    for( int i = 0; i < array_size, i++)
+        user_block_bitmap[block_array[i]] = 1;
+        
+} 
+
+get_array_1(int block_num, int *user_block_bitmap, int array_size){
+    arb_block block_buf.buff = (u8*)malloc(main_sb.s_log_block_size);
+    u32 block_array[array_size];
+    fetch_block(block_num, block_buf);
+    memcopy(block_array, block_buf, sizeof(u32) * array_size);
+    
+    for( int i = 0; i < array_size; i++){
+        get_array_final(block_array[i], user_block_bitmap array_size);
+    }
+}
+
+get_array_2(int block_num, int *user_block_bitmap, int array_size){
+    arb_block block_buf.buff = (u8*)malloc(main)sb.s_log_block_size);
+    u32 block_array[array_size];
+    fetch_block(block_num, block_buf);
+    memcopy(block_array, block_buf, sizeof(u32) * array_size);
+    
+    for( int i = 0; i < array_size; i++){
+        get_array_1(block_array[i], user_block_bitmap array_size);
+    }
+}
+
+get_array_3(int block_num, int *user_block_bitmap, int array_size){
+    arb_block block_buf.buff = (u8*)malloc(main)sb.s_log_block_size);
+    u32 block_array[array_size];
+    fetch_block(block_num, block_buf);
+    memcopy(block_array, block_buf, sizeof(u32) * array_size);
+    
+    for( int i = 0; i < array_size; i++){
+        get_array_2(block_array[i], user_block_bitmap array_size);
+    }
+}
+
