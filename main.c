@@ -316,6 +316,7 @@ u32 get_block_bitmap(u32 bock_group, u8 *block_bitmap);
 u32 get_inode_bitmap(u32 bock_group, u8 *inode_bitmap);
 void get_inode(u32 inode_num, inode_info* inode );
 s32 vdi_seek(u32 position);
+u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info *inode)
 s32 vdi_read(void *buff);
 
 VDI_file vdi;
@@ -343,6 +344,7 @@ s32 main(s32 argc, char *argv[]) {
         u8 *block_bitmap;
         inode_info *inode;
         int inode_start;
+        u32 inodes_per_block;
     
 
 
@@ -428,18 +430,23 @@ s32 main(s32 argc, char *argv[]) {
 		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
 	}
         
+        inodes_per_block = main_sb.s_log_block_size/sizeof(inode_info);
+        
         for(int i = 0; i < no_block_grps; i++){
             get_block_bitmap(i, u8block_bitmap);
             get_inode_bitmap(i, inode_bitmap);
             for(int j = i * main_sb.s_inodes_per_group + 1; j < (i+1)*main_sb.s_inodes_per_group; j++){
                 get_inode(j, inode );
-                if(inode[(j-1)%main_sb.s_inodes_per_group].i_mode == 0xC000 )
+                if(inode[(j-1)%inodes_per_block].i_mode == 0xC000 )
                     file++;
                 
-                if(inode[(j-1)%main_sb.s_inodes_per_group].i_mode == 0x4000)
+                if(inode[(j-1)%inodes_per_block].i_mode == 0x4000)
                     directory++;
-                if(inode[(j-1)%main_sb.s_inodes_per_group].i_mode != 0)
-                    user_inodebitmap[j] = 1;
+                if(inode[(j-1)%inodes_per_block].i_mode != 0)
+                    user_inodebitmap[j - 1] = 1;
+                
+                get_used_blocks(j, user_block_bitmap, inode);
+                
             }
             
             
@@ -609,10 +616,14 @@ u32 get_block_bitmap(u32 bock_group, u8 *block_bitmap){
     
     block_num = table[block_group].bg_inode_bitmap;
     fetch_block(block_num, bock_buf);
-    memcopy(inode_bitmap, block_buf, sizeof(inode_bitmap))
+    memcopy(inode_bitmap, block_buf, sizeof(inode_bitmap));
+    
+    return 0;
+            
+            
 }
 
-void get_inode(u32 inode_num, inode_info* inode ){
+u32 get_inode(u32 inode_num, inode_info* inode ){
     u32 group;
     u32 inode_in_group;
     u32 start;
@@ -627,13 +638,10 @@ void get_inode(u32 inode_num, inode_info* inode ){
     block_num = start + inode_in_group/inodes_per_block;
     
     fetch_block(block_num, block_buf );
+    
+    return 0;   
 }
    
-u32 check_sb(){
-    for(int i = 1; i < no_block_grps; i * 3){
-        get_super_block()
-    }
-}
 u32 compare_sb(ext2_super_block a, ext2_super_block b) {
 
 	printf("Comparing super blocks.\n");
@@ -750,7 +758,7 @@ u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b, u32 no_block_grps)
         }
 }
 
-get_bit(u8 *bitmap, int bit_num) {
+u32 get_bit(u8 *bitmap, int bit_num) {
     int i;
     int j;
     
@@ -760,10 +768,12 @@ get_bit(u8 *bitmap, int bit_num) {
     return bitmap[i] & (1 << j);
 }
 
-get_used_blocks(int* user_block_bitmap, inode_info *inode){
-    u32 *i_block = (u32*)malloc(sizeof(u32)* 15)
-    memcopy(i_block, inode.i_block, sizeof(inode.i_block));
-    array_size = inode.i_blocks/(2 << main_sb.s_log_block_size);
+u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info *inode){
+    u32 *i_block = (u32*)malloc(sizeof(u32) * 15);
+    int inode_location = (inode_num - 1) % main_sb.s_inodes_per_group;
+           
+    memcopy(i_block, inode[inode_location].i_block, sizeof(inode.i_block));
+    array_size = main_sb.s_log_block_size/sizeof(u32);
     for (int i = 0; i < 12; i++)
         user_block_bitmap[i_block[i]] = 1; 
     
@@ -772,8 +782,8 @@ get_used_blocks(int* user_block_bitmap, inode_info *inode){
     get_array_2 (i_block[14], user_block_bitmap, array_size);
 }
 
-get_array_final( int block_num, int* user_block_bitmap, int array_size){
-    arb_block block_buf.buff = (u8*)malloc(main_sb.s_log_block_size);
+u32 get_array_final( int block_num, int* user_block_bitmap, int array_size){
+    arb_block block_buf->buff = (u8*)malloc(main_sb.s_log_block_size);
     u32 block_array[array_size];
     fetch_block(block_num, block_buf);
     memcopy(block_array, block_buf, sizeof(u32)*array_size);
@@ -783,8 +793,8 @@ get_array_final( int block_num, int* user_block_bitmap, int array_size){
         
 } 
 
-get_array_1(int block_num, int *user_block_bitmap, int array_size){
-    arb_block block_buf.buff = (u8*)malloc(main_sb.s_log_block_size);
+u32 get_array_1(int block_num, int *user_block_bitmap, int array_size){
+    arb_block block_buf->buff = (u8*)malloc(main_sb.s_log_block_size);
     u32 block_array[array_size];
     fetch_block(block_num, block_buf);
     memcopy(block_array, block_buf, sizeof(u32) * array_size);
@@ -794,8 +804,8 @@ get_array_1(int block_num, int *user_block_bitmap, int array_size){
     }
 }
 
-get_array_2(int block_num, int *user_block_bitmap, int array_size){
-    arb_block block_buf.buff = (u8*)malloc(main)sb.s_log_block_size);
+u32 get_array_2(int block_num, int *user_block_bitmap, int array_size){
+    arb_block block_buf->buff = (u8*)malloc(main_sb.s_log_block_size);
     u32 block_array[array_size];
     fetch_block(block_num, block_buf);
     memcopy(block_array, block_buf, sizeof(u32) * array_size);
@@ -803,16 +813,50 @@ get_array_2(int block_num, int *user_block_bitmap, int array_size){
     for( int i = 0; i < array_size; i++){
         get_array_1(block_array[i], user_block_bitmap array_size);
     }
+    
+    return 0;
 }
 
-get_array_3(int block_num, int *user_block_bitmap, int array_size){
-    arb_block block_buf.buff = (u8*)malloc(main)sb.s_log_block_size);
-    u32 block_array[array_size];
-    fetch_block(block_num, block_buf);
-    memcopy(block_array, block_buf, sizeof(u32) * array_size);
+u32 compare_block_bitmap(int block_grp_no, int *user_block_bitmap, u8* block_bitmap){
+    int start = block_grp_no * main_sb.s_blocks_per_group;
+    int end = (block_grp_no + 1) * main_sb.s_blocks_per_group;
     
-    for( int i = 0; i < array_size; i++){
-        get_array_2(block_array[i], user_block_bitmap array_size);
+    for(int i = start; i < end; i++){
+        
+        if(user_block_bitmap[i] == get_bit(block_bitmap ,i%main_sb.s_blocks_per_group))
+            continue;
+        else if (user_block_bitmap[i] == 1 && get_bit(block_bitmap ,i% main_sb.s_blocks_per_group) == 0)
+            printf("Bad 1 at block {0}\n", i + 1);
+        else if(user_block_bitmap[i] == 0 && get_bit(block_bitmap ,i % main_sb.s_blocks_per_group) == 1)
+            printf("Bad 2 at block {0}\n", i + 1);
+        else
+            printf("Bit value not 0 or 1\n");
+        
+        return 0;
+            
+            
+        
+    }
+}
+
+u32 compare_inode_bitmap(int block_grp_no, int *user_block_bitmap, u8* block_bitmap){
+    int start = block_grp_no * main_sb.s_inodes_per_group;
+    int end = (block_grp_no + 1) * main_sb.s_inodes_per_group;
+    
+    for(int i = start; i < end; i++){
+        
+        if(user_inode_bitmap[i] == get_bit(inode_bitmap ,i%main_sb.s_inodes_per_group))
+            continue;
+        else if (user_inode_bitmap[i] == 1 && get_bit(inode_bitmap ,i% main_sb.s_inodes_per_group) == 0)
+            printf("Bad 1 at inode {0}\n", i + 1);
+        else if(user_block_bitmap[i] == 0 && get_bit(inode_bitmap ,i % main_sb.s_inodes_per_group) == 1)
+            printf("Bad 2 at inode {0}\n", i + 1);
+        else
+            printf("Bit value not 0 or 1\n");
+        
+        return 0;
+        
+                    
     }
 }
 
