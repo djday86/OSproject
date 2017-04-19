@@ -445,10 +445,13 @@ s32 main(s32 argc, char *argv[]) {
         
         inodes_per_block = main_sb.s_log_block_size/sizeof(inode_info);
         
-        for(int i = 0; i < vdi.no_groups; i++){
+        for(i = 0; i < vdi.no_groups; i++){
             get_block_bitmap(i, block_bitmap);
             get_inode_bitmap(i, inode_bitmap);
+            
+            
             for(int j = i * main_sb.s_inodes_per_group + 1; j < (i+1)* main_sb.s_inodes_per_group + 1; j++){
+                printf("First inode bitmap %i\n",inode_bitmap[0]);
                 get_inode(j, inode );
                 if(inode[(j-1)%inodes_per_block].i_mode == 0xC000 )
                     file++;
@@ -663,6 +666,7 @@ u32 get_block_bitmap(u32 block_group, u8 *block_bitmap){
 }
 
 u32 get_inode(u32 inode_num, inode_info* inode ){
+    
     u32 group;
     u32 inode_in_group;
     u32 start_point;
@@ -676,6 +680,7 @@ u32 get_inode(u32 inode_num, inode_info* inode ){
     start_point = desc_table[group].bg_inode_table;
     block_num = start_point + inode_in_group/inodes_per_block;
     
+    printf("why\n");
     fetch_block(block_num, block_buf );
     memcpy(inode, block_buf, sizeof(inode_info) * inodes_per_block);
     
