@@ -544,15 +544,16 @@ u32 get_partition_details(BootSector boot_sector){
 	return boot_sector.partitionTable[i].firstSector * 512;
 }
 
+u32 get_superblock(ext2_super_block backup_sb, int block_group_no ){
+    u8 *temp = (u8*)malloc(vdi.block_size);
+}
+
 s32 get_bg_descriptor_table(bg_descriptor *bg_data, block, int block_group_no) {
         printf("Here:\n");
 	u8 *temp = (u8*)malloc(vdi.block_size);
         
-	
-        
-	if(vdi.block_size > 1024) {
-
-            fetch_bg_block(temp, block_group_no);
+	if(vdi.block_size > 1024 && block_group_no == 0) {
+            fetch_block(temp, block_group_no);
             memcpy(bg_data, temp, sizeof(bg_descriptor) * vdi.no_groups);
             printf("HERE:\n");          
             }
