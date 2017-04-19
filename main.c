@@ -455,9 +455,8 @@ s32 main(s32 argc, char *argv[]) {
             
             for(int j = i * main_sb.s_inodes_per_group + 1; j < (i+1)* main_sb.s_inodes_per_group + 1; j++){
                 
-                get_inode(j, inode );
-                
-                
+                get_inode(j, inode);
+                printf("Inode id%i\n",inode[(j-1) % inodes_per_block].i_uid);
                 if(inode[(j-1) % inodes_per_block].i_mode == 0xC000 ){
                     printf("file found\n");
                     file++;
@@ -832,23 +831,24 @@ u32 get_bit(u8 *bitmap, int bit_num) {
 u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info *inode){
     u32 array_size;
     u32 inodes_per_block = vdi.block_size/sizeof(inode_info);
-    u32 *i_block_array = (u32*)malloc(sizeof(u32) * 15);
-    int inode_location = (inode_num - 1) % inodes_per_block;
-    
-    //printf("Inode Location = %i\n",inode[inode_location].i_size);
-    memcpy(i_block_array, inode[inode_location].i_block, sizeof(inode[inode_location].i_block));
+    u32 inode_in_block = (inode_num - 1) % inodes_per_block;
+//    u32 *i_block_array = (u32*)malloc(sizeof(u32) * 15);
+//    int inode_location = (inode_num - 1) % inodes_per_block;
+//    
+//    //printf("Inode Location = %i\n",inode[inode_location].i_size);
+//    memcpy(i_block_array, inode[inode_location].i_block, sizeof(inode[inode_location].i_block))
     array_size = vdi.block_size/sizeof(u32);
     
-    if(i_block_array[0] == 0)
+    if(inode[inode_in_block].i_block[0]] == 0)
         return 0;
     
     
     for (int i = 0; i < 15; i++)
-        user_block_bitmap[i_block_array[i]] = 1; 
+        user_block_bitmap[inode[inode_in_block].i_block[i] = 1; 
     
-    get_array_final(i_block_array[12], user_block_bitmap, array_size);
-    get_array_1(i_block_array[13], user_block_bitmap, array_size);
-    get_array_2 (i_block_array[14], user_block_bitmap, array_size);
+    get_array_final(inode[inode_in_block].i_block[12], user_block_bitmap, array_size);
+    get_array_1(inode[inode_in_block].i_block[13], user_block_bitmap, array_size);
+    get_array_2 (inode[inode_in_block].i_block[14], user_block_bitmap, array_size);
     printf("Read Block Array Complete\n");
 }
 
