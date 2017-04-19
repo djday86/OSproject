@@ -312,7 +312,7 @@ u32 fetch_bg_block(void *buff);
 s32 fetch_block( s32 num, void *buff);
 s32 fetch_inode(u32 inode_num, bg_descriptor *table, inode_info* inode );
 u32 block_buf_allocate(u32 block_size, arb_block *block_buf );
-s32 get_bg_descriptor_table(bg_descriptor *bg_data);
+s32 get_bg_descriptor_table(bg_descriptor *bg_data, int block_grp_no);
 u32 compare_sb(ext2_super_block a, ext2_super_block b);
 u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b, u32 no_block_grps);
 u32 get_block_bitmap(u32 bock_group, u8 *block_bitmap);
@@ -544,7 +544,7 @@ u32 get_partition_details(BootSector boot_sector){
 	return boot_sector.partitionTable[i].firstSector * 512;
 }
 
-s32 get_bg_descriptor_table(bg_descriptor *bg_data) {
+s32 get_bg_descriptor_table(bg_descriptor *bg_data, block, int block_group_no) {
         printf("Here:\n");
 	u8 *temp = (u8*)malloc(vdi.block_size);
         
@@ -552,13 +552,13 @@ s32 get_bg_descriptor_table(bg_descriptor *bg_data) {
         
 	if(vdi.block_size > 1024) {
 
-            fetch_block(1,temp);
+            fetch_bg_block(temp, block_group_no);
             memcpy(bg_data, temp, sizeof(bg_descriptor) * vdi.no_groups);
             printf("HERE:\n");          
             }
         
 	else{
-                fetch_block(2,temp);
+                fetch_block(2 + vdi.block_size * vdi.blocks_pg,temp);
                 memcpy(bg_data, temp, sizeof(bg_descriptor) * vdi.no_groups);
                 printf("HEREO\n");
             }
@@ -568,8 +568,8 @@ s32 get_bg_descriptor_table(bg_descriptor *bg_data) {
         return 0;
 }
 
-u32 fetch_bg_block(void *buff){
-    if(vdi_seek(1024) == -1) {
+u32 fetch_bg_block(void *buff, int block_grp_no){
+    if(vdi_seek(vdi.block_size * vdi.blocks_pg + 1024) == -1) {
 		printf("Fetch Block: LSEEK FAILURE\n");
 		return -1;
 	}
