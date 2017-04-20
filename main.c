@@ -335,6 +335,7 @@ u32 no_block_grps;
 u32 fd =0;
 ext2_super_block main_sb;
 bg_descriptor *desc_table;
+
 	
 
 s32 main(s32 argc, char *argv[]) {
@@ -354,8 +355,8 @@ s32 main(s32 argc, char *argv[]) {
         u8 *block_bitmap;
         int *user_inode_bitmap;
         int *user_block_bitmap;
-        inode_info *inode;
         u32 inodes_per_block;
+        inode_info *inode;
     
 
 
@@ -433,26 +434,26 @@ s32 main(s32 argc, char *argv[]) {
 	printf("Total number of block groups: %u\n",vdi.no_groups);
         
         inodes_per_block = vdi.block_size/sizeof(inode_info);
+        
+        inodes_per_block = vdi.block_size/sizeof(inode_info);
         user_block_bitmap = (int*)malloc(sizeof(int) * main_sb.s_blocks_count);
         user_inode_bitmap = (int*)malloc(sizeof(int) * main_sb.s_inodes_count);
         desc_table = (bg_descriptor*)malloc(sizeof(bg_descriptor) * vdi.no_groups);
         inode_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_inodes_per_group/8);
         block_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_blocks_per_group/8);
-        inode = (inode_info*)malloc(vdi.block_size);
+        inode = (inode_info*)malloc(sizeof(inode_info) * inodes_per_block);
 
         get_bg_descriptor_table(desc_table, 0);
 	for(i = 0; i < vdi.no_groups; i++) {
 		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
 	}
         
-        inodes_per_block = vdi.block_size/sizeof(inode_info);
-        
         for(i = 0; i < vdi.no_groups; i++){
             get_block_bitmap(i, block_bitmap);
             get_inode_bitmap(i, inode_bitmap);
            // printf("Inodes per group%i\n", main_sb.s_inodes_per_group);
             get_inode(1, inode);
-            printf("Inode id %i\n",inode[(0) % inodes_per_block].i_uid);
+            //printf("Inode id %u\n",inode[0].i_uid);
             
             for(int j = i * main_sb.s_inodes_per_group + 1; j < (i+1)* main_sb.s_inodes_per_group + 1; j++){
                 
@@ -476,6 +477,7 @@ s32 main(s32 argc, char *argv[]) {
             compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
         }
         printf("Number of files%i\n",file);
+        
 
 	free(vdi.map);
 	free(desc_table);
@@ -694,14 +696,14 @@ u32 get_inode(u32 inode_num, inode_info* inode ){
     inode_in_group = inode_num % main_sb.s_inodes_per_group;
     start_point = desc_table[group].bg_inode_table;
     block_num = start_point + inode_in_group/inodes_per_block;
-    
-    printf("Block num %i\n", block_num);
+
     
     //printf("Block_num %i\n", block_num);
-    fetch_block(block_num, inode );
-    //memcpy(inode, block_buf, sizeof(inode_info) * inodes_per_block);
+    fetch_block(block_num, block_buf );
+    memcpy(inode, block_buf, sizeof(inode_info) * inodes_per_block);
     
-    //printf("Got inode %i\n", inode_num);
+    //printf("size inode %i\n", sizeof(inode_info) * inodes_per_block);
+    //printf("Inode id %i\n",inode[i % inodes_per_block].i_uid);
     return 0;   
 }
    
