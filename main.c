@@ -245,7 +245,7 @@ typedef struct {
 
 } arb_block;
 
-typedef struct{
+typedef struct __attribute__((packed)) inode_info{
         s16	i_mode;		/* File mode */
 	s16	i_uid;		/* Low 16 bits of Owner Uid */
 	s32	i_size;		/* Size in bytes */
@@ -318,7 +318,7 @@ u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b, u32 no_block_grps)
 u32 get_block_bitmap(u32 bock_group, u8 *block_bitmap);
 u32 get_inode_bitmap(u32 bock_group, u8 *inode_bitmap);
 u32 get_inode(u32 inode_num, inode_info* inode );
-u32 get_bit(u8 *bitmap, int bit_num);
+u8 get_bit(u8 *bitmap, int bit_num);
 u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info *inode);
 u32 get_array_final( int block_num, int* user_block_bitmap, int array_size);
 u32 get_array_1(int block_num, int *user_block_bitmap, int array_size);
@@ -442,6 +442,7 @@ s32 main(s32 argc, char *argv[]) {
         inode_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_inodes_per_group/8);
         block_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_blocks_per_group/8);
         inode = (inode_info*)malloc(sizeof(inode_info) * inodes_per_block);
+        
 
         get_bg_descriptor_table(desc_table, 0);
 	for(i = 0; i < vdi.no_groups; i++) {
@@ -471,7 +472,8 @@ s32 main(s32 argc, char *argv[]) {
                 if(inode[(j-1)%inodes_per_block].i_mode != 0)
                     user_inode_bitmap[j - 1] = 1;
                 
-                get_used_blocks(j, user_block_bitmap, inode);    
+                get_used_blocks(j, user_block_bitmap, inode);   
+                //printf("Block bitmap %i\n", block_bitmap[0]);
             }
             compare_block_bitmap(i, user_block_bitmap, block_bitmap);
             compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
@@ -589,15 +591,9 @@ u32 fetch_bg_block(void *buff, int block_grp_no){
     return 0;
 }
 
-
-s32 fetch_inode(u32 inode_num, bg_descriptor *table, inode_info* inode ){
-    get_inode(inode_num, inode);
-    
-}
-
 s32 fetch_block(s32 num, void *buff) {
 
-	u32 position = (num - 1) * vdi.block_size;
+	u32 position = num* vdi.block_size;
         
 	if(vdi_seek(position) == -1) {
 		printf("Fetch Block: LSEEK FAILURE\n");
@@ -614,7 +610,7 @@ s32 fetch_block(s32 num, void *buff) {
 
 s32 vdi_seek(u32 position) {
 
-	u32 loc = VDI_translate(vdi.start + 1024 + position);
+	u32 loc = VDI_translate(vdi.start + position);
 
 	if(lseek(vdi.fd, loc, SEEK_SET) == -1 ) {
 		printf("VDI_SEEK: FAILURE\n");
@@ -702,7 +698,7 @@ u32 get_inode(u32 inode_num, inode_info* inode ){
     fetch_block(block_num, block_buf );
     memcpy(inode, block_buf, sizeof(inode_info) * inodes_per_block);
     
-    //printf("size inode %i\n", sizeof(inode_info) * inodes_per_block);
+    //printf("Inode in group%i\n", inode_in_group);
     //printf("Inode id %i\n",inode[i % inodes_per_block].i_uid);
     return 0;   
 }
@@ -823,13 +819,14 @@ u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b, u32 no_block_grps)
         }
 }
 
-u32 get_bit(u8 *bitmap, int bit_num) {
+u8 get_bit(u8 *bitmap, int bit_num) {
     int i;
     int j;
     
     i = bit_num/8;
     j = bit_num%8;
     
+    printf("bit = %i", bitmap[i] & (i << j));
     return bitmap[i] & (1 << j);
 }
 
@@ -909,13 +906,17 @@ u32 get_array_2(int block_num, int *user_block_bitmap, int array_size){
 
 u32 compare_block_bitmap(int block_grp_no, int *user_block_bitmap, u8* block_bitmap){
     int start = block_grp_no * main_sb.s_blocks_per_group;
-    int end = (block_grp_no) * main_sb.s_blocks_per_group;
+    int end = (block_grp_no + 1) * main_sb.s_blocks_per_group;
     bool error = false;
     
-    for(int i = start; i < end; i++){
+    printf("print anything \n",get_bit(block_bitmap ,i%main_sb.s_blocks_per_group));   
         
-        if(user_block_bitmap[i] == get_bit(block_bitmap ,i%main_sb.s_blocks_per_group))
+    for(int i = start; i < end; i++){
+     
+        if(user_block_bitmap[i] == get_bit(block_bitmap ,i%main_sb.s_blocks_per_group)){
+            
             continue;
+        }
         else if (user_block_bitmap[i] == 1 && get_bit(block_bitmap ,i% main_sb.s_blocks_per_group) == 0){
             printf("Bad 1 at block %i\n", i);
             error = true;
@@ -936,7 +937,7 @@ u32 compare_block_bitmap(int block_grp_no, int *user_block_bitmap, u8* block_bit
 
 u32 compare_inode_bitmap(int block_grp_no, int *user_inode_bitmap, u8* inode_bitmap){
     int start = block_grp_no * main_sb.s_inodes_per_group;
-    int end = (block_grp_no) * main_sb.s_inodes_per_group;
+    int end = (block_grp_no + 1) * main_sb.s_inodes_per_group;
     bool error = false;
     
     for(int i = start; i < end; i++){
