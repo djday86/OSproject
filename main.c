@@ -826,8 +826,17 @@ u8 get_bit(u8 *bitmap, int bit_num) {
     i = bit_num/8;
     j = bit_num%8;
     
-    printf("bit = %i", bitmap[i] & (i << j));
-    return bitmap[i] & (1 << j);
+    //printf("expected bitmap%i\n", (bitmap[i] & (1 << j) ));
+    //printf("expected bitmap%i\n", (1 << j) );
+    
+    if((bitmap[i] & (1 << j)) == 0){
+       // printf("bit = %i\n", 0);
+        return 0;
+    }
+    else{
+       // printf("bit = %i\n", 1);
+        return 1;
+    }
 }
 
 u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info *inode){
