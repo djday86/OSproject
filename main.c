@@ -245,7 +245,7 @@ typedef struct {
 
 } arb_block;
 
-typedef struct __attribute__((packed)) inode_info{
+typedef struct{
         s16	i_mode;		/* File mode */
 	s16	i_uid;		/* Low 16 bits of Owner Uid */
 	s32	i_size;		/* Size in bytes */
@@ -356,7 +356,7 @@ s32 main(s32 argc, char *argv[]) {
         int *user_inode_bitmap;
         int *user_block_bitmap;
         u32 inodes_per_block;
-        inode_info *inode;
+        inode_info* inode;
     
 
 
@@ -441,7 +441,7 @@ s32 main(s32 argc, char *argv[]) {
         desc_table = (bg_descriptor*)malloc(sizeof(bg_descriptor) * vdi.no_groups);
         inode_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_inodes_per_group/8);
         block_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_blocks_per_group/8);
-        inode = (inode_info*)malloc(sizeof(inode_info) * inodes_per_block);
+        inode = (inode_info*)malloc(sizeof(inode_info));
         
 
         get_bg_descriptor_table(desc_table, 0);
@@ -449,50 +449,50 @@ s32 main(s32 argc, char *argv[]) {
 		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
 	}
         
-        for(i = 0; i < vdi.no_groups; i++){
+        //for(i = 0; i < vdi.no_groups; i++){
             get_block_bitmap(i, block_bitmap);
             get_inode_bitmap(i, inode_bitmap);
            // printf("Inodes per group%i\n", main_sb.s_inodes_per_group);
-            get_inode(1, inode);
+            get_inode(4000, inode);
             //printf("Inode id %u\n",inode[0].i_uid);
             
-            for(int j = i * main_sb.s_inodes_per_group + 1; j < (i+1)* main_sb.s_inodes_per_group + 1; j++){
-                
-                get_inode(j, inode);
-                
-                if(inode[(j-1) % inodes_per_block].i_mode == 0xC000 ){
-                    printf("file found\n");
-                    file++;
-                }
-                
-                if(inode[(j-1)%inodes_per_block].i_mode == 0x4000){
-                    directory++;
-                    printf("directory foudn\n");
-                }
-                if(inode[(j-1)%inodes_per_block].i_mode != 0)
-                    user_inode_bitmap[j - 1] = 1;
-                
-                get_used_blocks(j, user_block_bitmap, inode);   
-                //printf("Block bitmap %i\n", block_bitmap[0]);
-            }
-            compare_block_bitmap(i, user_block_bitmap, block_bitmap);
-            compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
-        }
-        printf("Number of files%i\n",file);
-        
-
-	free(vdi.map);
-	free(desc_table);
-
-
-	if(close(fd) == -1) {
-		printf("Error.\n");
-		return EXIT_FAILURE;
-	}
-        
-
-	return EXIT_SUCCESS;
-
+//            for(int j = i * main_sb.s_inodes_per_group + 1; j < (i+1)* main_sb.s_inodes_per_group + 1; j++){
+//                
+//                get_inode(j, inode);
+//                
+//                if(inode[0].i_mode == 0xC000 ){
+//                    printf("file found\n");
+//                    file++;
+//                }
+//                
+//                if(inode[0].i_mode == 0x4000){
+//                    directory++;
+//                    printf("directory foudn\n");
+//                }
+//                if(inode[0].i_mode != 0)
+//                    user_inode_bitmap[j - 1] = 1;
+//                
+//                get_used_blocks(j, user_block_bitmap, inode);   
+//                //printf("Block bitmap %i\n", block_bitmap[0]);
+//            }
+////            compare_block_bitmap(i, user_block_bitmap, block_bitmap);
+////            compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
+//        }
+//        printf("Number of files%i\n",file);
+//        
+//
+//	free(vdi.map);
+//	free(desc_table);
+//
+//
+//	if(close(fd) == -1) {
+//		printf("Error.\n");
+//		return EXIT_FAILURE;
+//	}
+//        
+//
+//	return EXIT_SUCCESS;
+//
 }
 /*
 
@@ -678,13 +678,13 @@ u32 get_block_bitmap(u32 block_group, u8 *block_bitmap){
             
 }
 
-u32 get_inode(u32 inode_num, inode_info* inode ){
+u32 get_inode(u32 inode_num, inode_info *inode ){
     
     u32 group;
     u32 inode_in_group;
     u32 start_point;
     u32 block_num;
-    u8 *block_buf = (u8*)malloc(vdi.block_size);
+    inode_info *block_buf = (inode_info*)malloc(vdi.block_size);
     u32 inodes_per_block = vdi.block_size/sizeof(inode_info);
     
     inode_num--;
@@ -696,10 +696,11 @@ u32 get_inode(u32 inode_num, inode_info* inode ){
     
     //printf("Block_num %i\n", block_num);
     fetch_block(block_num, block_buf );
-    memcpy(inode, block_buf, sizeof(inode_info) * inodes_per_block);
+    memcpy(inode, block_buf + (inode_num % inodes_per_block), sizeof(inode_info));
     
     //printf("Inode in group%i\n", inode_in_group);
-    //printf("Inode id %i\n",inode[i % inodes_per_block].i_uid);
+    printf("Inode id %d\n", inode->i_block[0]);
+    free(block_buf);
     return 0;   
 }
    
@@ -839,10 +840,9 @@ u8 get_bit(u8 *bitmap, int bit_num) {
     }
 }
 
-u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info *inode){
+u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info* inode){
     u32 array_size;
     u32 inodes_per_block = vdi.block_size/sizeof(inode_info);
-    u32 inode_in_block = (inode_num - 1) % inodes_per_block;
 //    u32 *i_block_array = (u32*)malloc(sizeof(u32) * 15);
 //    int inode_location = (inode_num - 1) % inodes_per_block;
 //    
@@ -850,16 +850,16 @@ u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info *inode){
 //    memcpy(i_block_array, inode[inode_location].i_block, sizeof(inode[inode_location].i_block))
     array_size = vdi.block_size/sizeof(u32);
     
-    if(inode[inode_in_block].i_block[0] == 0)
+    if(inode[0].i_block[0] == 0)
         return 0;
     
     
     for (int i = 0; i < EXT2_N_BLOCKS; i++)
-        user_block_bitmap[inode[inode_in_block].i_block[i] - 1] = 1; 
+        user_block_bitmap[inode[0].i_block[i] - 1] = 1; 
     
-    get_array_final(inode[inode_in_block].i_block[12], user_block_bitmap, array_size);
-    get_array_1(inode[inode_in_block].i_block[13], user_block_bitmap, array_size);
-    get_array_2 (inode[inode_in_block].i_block[14], user_block_bitmap, array_size);
+    get_array_final(inode[0].i_block[12], user_block_bitmap, array_size);
+    get_array_1(inode[0].i_block[13], user_block_bitmap, array_size);
+    get_array_2 (inode[0].i_block[14], user_block_bitmap, array_size);
     //printf("Read Block Array Complete\n");
 }
 
