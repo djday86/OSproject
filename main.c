@@ -298,7 +298,7 @@ typedef struct{
 		} masix2;
 	} osd2;				/* OS dependent 2 */
 
-    
+
 } inode_info;
 
 
@@ -307,14 +307,13 @@ u32 get_partition_details(BootSector boot_sector);
 u32 get_super_block(ext2_super_block *backup_sb, int block_grp_no);
 u32 VDI_translate(u32 desired_byte);
 u32 read_into_buffer(void *buff, u32 position, u32 num_bytes);
-u32 sb_copy_block(u32 block_num, u32 no_block_grps);
 u32 fetch_bg_block(void *buff, int block_grp_no);
 s32 fetch_block( s32 num, void *buff);
 s32 fetch_inode(u32 inode_num, bg_descriptor *table, inode_info* inode );
 u32 block_buf_allocate(u32 block_size, arb_block *block_buf );
 s32 get_bg_descriptor_table(bg_descriptor *bg_data, int block_grp_no);
 u32 compare_sb(ext2_super_block a, ext2_super_block b);
-u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b, u32 no_block_grps);
+u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b);
 u32 get_block_bitmap(u32 bock_group, u8 *block_bitmap);
 u32 get_inode_bitmap(u32 bock_group, u8 *inode_bitmap);
 u32 get_inode(u32 inode_num, inode_info* inode );
@@ -328,6 +327,8 @@ u32 compare_inode_bitmap(int block_grp_no, int *user_block_bitmap, u8* block_bit
 s32 vdi_seek(u32 position);
 u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info *inode);
 s32 vdi_read(void *buff);
+u32 superblock_check(ext2_super_block main_sb);
+u32 bg_desc_table_check(bg_descriptor *a);
 
 VDI_file vdi;
 u8 *temp_block;
@@ -336,7 +337,7 @@ u32 fd =0;
 ext2_super_block main_sb;
 bg_descriptor *desc_table;
 
-	
+
 
 s32 main(s32 argc, char *argv[]) {
 
@@ -357,7 +358,7 @@ s32 main(s32 argc, char *argv[]) {
         int *user_block_bitmap;
         u32 inodes_per_block;
         inode_info* inode;
-    
+
 
 
 	printf("\nFile System Check:");
@@ -432,9 +433,9 @@ s32 main(s32 argc, char *argv[]) {
 
 
 	printf("Total number of block groups: %u\n",vdi.no_groups);
-        
+
         inodes_per_block = vdi.block_size/sizeof(inode_info);
-        
+
         inodes_per_block = vdi.block_size/sizeof(inode_info);
         user_block_bitmap = (int*)malloc(sizeof(int) * main_sb.s_blocks_count);
         user_inode_bitmap = (int*)malloc(sizeof(int) * main_sb.s_inodes_count);
@@ -442,44 +443,47 @@ s32 main(s32 argc, char *argv[]) {
         inode_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_inodes_per_group/8);
         block_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_blocks_per_group/8);
         inode = (inode_info*)malloc(sizeof(inode_info));
-        
+
+				superblock_check(main_sb);
 
         get_bg_descriptor_table(desc_table, 0);
+
+				bg_desc_table_check(desc_table);
 	for(i = 0; i < vdi.no_groups; i++) {
 		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
 	}
-        
+
         //for(i = 0; i < vdi.no_groups; i++){
             get_block_bitmap(i, block_bitmap);
             get_inode_bitmap(i, inode_bitmap);
            // printf("Inodes per group%i\n", main_sb.s_inodes_per_group);
             get_inode(4000, inode);
             //printf("Inode id %u\n",inode[0].i_uid);
-            
+
 //            for(int j = i * main_sb.s_inodes_per_group + 1; j < (i+1)* main_sb.s_inodes_per_group + 1; j++){
-//                
+//
 //                get_inode(j, inode);
-//                
+//
 //                if(inode[0].i_mode == 0xC000 ){
 //                    printf("file found\n");
 //                    file++;
 //                }
-//                
+//
 //                if(inode[0].i_mode == 0x4000){
 //                    directory++;
 //                    printf("directory foudn\n");
 //                }
 //                if(inode[0].i_mode != 0)
 //                    user_inode_bitmap[j - 1] = 1;
-//                
-//                get_used_blocks(j, user_block_bitmap, inode);   
+//
+//                get_used_blocks(j, user_block_bitmap, inode);
 //                //printf("Block bitmap %i\n", block_bitmap[0]);
 //            }
 ////            compare_block_bitmap(i, user_block_bitmap, block_bitmap);
 ////            compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
 //        }
 //        printf("Number of files%i\n",file);
-//        
+//
 //
 //	free(vdi.map);
 //	free(desc_table);
@@ -489,9 +493,9 @@ s32 main(s32 argc, char *argv[]) {
 //		printf("Error.\n");
 //		return EXIT_FAILURE;
 //	}
-//        
 //
-//	return EXIT_SUCCESS;
+//
+return EXIT_SUCCESS;
 //
 }
 /*
@@ -551,23 +555,23 @@ u32 get_partition_details(BootSector boot_sector){
 u32 get_superblock(ext2_super_block *backup_sb, int block_group_no ){
     u8 *temp = (u8*)malloc(vdi.block_size);
     int position = block_group_no * vdi.block_size * vdi.blocks_pg;
-    
+
     fetch_block(position, temp);
     memcpy(backup_sb, temp, sizeof(ext2_super_block));
-    
+
     return 0;
 }
 
 s32 get_bg_descriptor_table(bg_descriptor *bg_data, int block_group_no) {
-        printf("Here:\n");
+
 	u8 *temp = (u8*)malloc(vdi.block_size);
-        
+
 	if(vdi.block_size > 1024 && block_group_no == 0) {
             fetch_block(1, temp);
             memcpy(bg_data, temp, sizeof(bg_descriptor) * vdi.no_groups);
-            printf("HERE:\n");          
+            printf("HERE:\n");
             }
-        
+
 	else{
                 fetch_block(2 + block_group_no * vdi.block_size * vdi.blocks_pg,temp);
                 memcpy(bg_data, temp, sizeof(bg_descriptor) * vdi.no_groups);
@@ -594,7 +598,7 @@ u32 fetch_bg_block(void *buff, int block_grp_no){
 s32 fetch_block(s32 num, void *buff) {
 
 	u32 position = num* vdi.block_size;
-        
+
 	if(vdi_seek(position) == -1) {
 		printf("Fetch Block: LSEEK FAILURE\n");
 		return -1;
@@ -616,7 +620,7 @@ s32 vdi_seek(u32 position) {
 		printf("VDI_SEEK: FAILURE\n");
 		return -1;
 	}
-        
+
         return 0;
 }
 
@@ -652,58 +656,58 @@ u32 block_buf_allocate(u32 block_size, arb_block *block ) {
 
 u32 get_inode_bitmap(u32 block_group, u8 *inode_bitmap) {
     int block_num;
-    
+
     u8 *block_buf = (u8*)malloc(vdi.block_size);
-    
+
     block_num = desc_table[block_group].bg_inode_bitmap;
     fetch_block(block_num, block_buf);
     memcpy(inode_bitmap, block_buf, sizeof(u8)* main_sb.s_inodes_per_group/8);
-    
+
     printf("Got inode bitmap\n");
     return 0;
-        
+
 }
 
 u32 get_block_bitmap(u32 block_group, u8 *block_bitmap){
     int block_num;
     u8 *block_buf = (u8*)malloc(vdi.block_size);
-    
+
     block_num = desc_table[block_group].bg_block_bitmap;
     fetch_block(block_num, block_buf);
     memcpy(block_bitmap, block_buf, sizeof(u8) * main_sb.s_blocks_per_group/8);
-    
+
     printf("Got block bitmap\n");
     return 0;
-            
-            
+
+
 }
 
 u32 get_inode(u32 inode_num, inode_info *inode ){
-    
+
     u32 group;
     u32 inode_in_group;
     u32 start_point;
     u32 block_num;
     inode_info *block_buf = (inode_info*)malloc(vdi.block_size);
     u32 inodes_per_block = vdi.block_size/sizeof(inode_info);
-    
+
     inode_num--;
     group = inode_num/main_sb.s_inodes_per_group;
     inode_in_group = inode_num % main_sb.s_inodes_per_group;
     start_point = desc_table[group].bg_inode_table;
     block_num = start_point + inode_in_group/inodes_per_block;
 
-    
+
     //printf("Block_num %i\n", block_num);
     fetch_block(block_num, block_buf );
     memcpy(inode, block_buf + (inode_num % inodes_per_block), sizeof(inode_info));
-    
+
     //printf("Inode in group%i\n", inode_in_group);
     printf("Inode id %d\n", inode->i_block[0]);
     free(block_buf);
-    return 0;   
+    return 0;
 }
-   
+
 u32 compare_sb(ext2_super_block a, ext2_super_block b) {
 
 	printf("Comparing super blocks.\n");
@@ -773,63 +777,57 @@ u32 compare_sb(ext2_super_block a, ext2_super_block b) {
 	}
 }
 
-u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b, u32 no_block_grps) {
-
+u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b) {
 	printf("Comparing Block Group Descriptor Tables.\n");
 
-        for(int i = 0; i < no_block_grps; i++){
+	for(int k = 0; k < vdi.no_groups; k++) {
 
-            if(a[i].bg_block_bitmap != b[i].bg_block_bitmap) {
-                    printf("Discrepancy found in Block Group Descriptor {%i}: Block bitmap is inaccurate.\n",i);
-                    //return -1;
-            }
-             if(a[i].bg_inode_bitmap != b[i].bg_inode_bitmap) {
-                     printf("Discrepancy found in Block Group Descriptor {%i}: Inode bitmap is inaccurate.\n",i);
+	  if(a[k].bg_block_bitmap != b[k].bg_block_bitmap) {
+	          printf("Discrepancy found in Block Group Descriptor {%i}: Block bitmap is inaccurate.\n",k);
+	          //return -1;
+	  }
+	   if(a[k].bg_inode_bitmap != b[k].bg_inode_bitmap) {
+	           printf("Discrepancy found in Block Group Descriptor {%i}: Inode bitmap is inaccurate.\n",k);
 
-                    //return -1;
-            }
-            if(a[i].bg_inode_table != b[i].bg_inode_table) {
-                    printf("Discrepancy found in Block Group Descriptor {%i}: Inode table is inaccurate.\n",i);
-                    //return -1;
-            }
-            if(a[i].bg_free_blocks != b[i].bg_free_blocks) {
-                    printf("Discrepancy found in Block Group Descriptor {%i}: Free inode count is inaccurate.\n",i);
-                    //return -1;
-            }
-            if(a[i].bg_free_inodes != b[i].bg_free_inodes) {
-                    printf("Discrepancy found in Block Group Descriptor {%i}: Free inode count is inaccurate.\n",i);
-                    //return -1;
-            }
-            if(a[i].bg_used_dirs_count != b[i].bg_used_dirs_count) {
-                    printf("Discrepancy found in Block Group Descriptor {%i}: Used directories count is inaccurate.\n",i);
-                    //return -1;
-            }
-            if(a[i].bg_pad != b[i].bg_pad) {
-                    printf("Discrepancy found in Block Group Descriptor {%i}: Block group pad is inaccurate.\n",i);
-                    //return -1;
-            }
-            if(a[i].bg_reserved != b[i].bg_reserved) {
-                    printf("Discrepancy found in Block Group Descriptor {%i}: Reserved blocks count is inaccurate.\n",i);
-                    //return -1;
-            }
-
-            else {
-                    printf("Block Group Descriptor Table: OK!\n");
-                    return 0;
-            }
-        }
+	          //return -1;
+	  }
+	  if(a[k].bg_inode_table != b[k].bg_inode_table) {
+	          printf("Discrepancy found in Block Group Descriptor {%i}: Inode table is inaccurate.\n",k);
+	          //return -1;
+	  }
+	  if(a[k].bg_free_blocks != b[k].bg_free_blocks) {
+	          printf("Discrepancy found in Block Group Descriptor {%i}: Free inode count is inaccurate.\n",k);
+	          //return -1;
+	  }
+	  if(a[k].bg_free_inodes != b[k].bg_free_inodes) {
+	          printf("Discrepancy found in Block Group Descriptor {%i}: Free inode count is inaccurate.\n",k);
+	          //return -1;
+	  }
+	  if(a[k].bg_used_dirs_count != b[k].bg_used_dirs_count) {
+	          printf("Discrepancy found in Block Group Descriptor {%i}: Used directories count is inaccurate.\n",k);
+	          //return -1;
+	  }
+	  if(a[k].bg_pad != b[k].bg_pad) {
+	          printf("Discrepancy found in Block Group Descriptor {%i}: Block group pad is inaccurate.\n",k);
+	          //return -1;
+	  }
+	  else {
+	          printf("Block Group Descriptor Table: OK!\n");
+	          return 0;
+	  }
+	}
 }
 
 u8 get_bit(u8 *bitmap, int bit_num) {
     int i;
     int j;
-    
+
     i = bit_num/8;
     j = bit_num%8;
-    
+
     //printf("expected bitmap%i\n", (bitmap[i] & (1 << j) ));
     //printf("expected bitmap%i\n", (1 << j) );
-    
+
     if((bitmap[i] & (1 << j)) == 0){
        // printf("bit = %i\n", 0);
         return 0;
@@ -845,18 +843,18 @@ u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info* inode){
     u32 inodes_per_block = vdi.block_size/sizeof(inode_info);
 //    u32 *i_block_array = (u32*)malloc(sizeof(u32) * 15);
 //    int inode_location = (inode_num - 1) % inodes_per_block;
-//    
+//
 //    //printf("Inode Location = %i\n",inode[inode_location].i_size);
 //    memcpy(i_block_array, inode[inode_location].i_block, sizeof(inode[inode_location].i_block))
     array_size = vdi.block_size/sizeof(u32);
-    
+
     if(inode[0].i_block[0] == 0)
         return 0;
-    
-    
+
+
     for (int i = 0; i < EXT2_N_BLOCKS; i++)
-        user_block_bitmap[inode[0].i_block[i] - 1] = 1; 
-    
+        user_block_bitmap[inode[0].i_block[i] - 1] = 1;
+
     get_array_final(inode[0].i_block[12], user_block_bitmap, array_size);
     get_array_1(inode[0].i_block[13], user_block_bitmap, array_size);
     get_array_2 (inode[0].i_block[14], user_block_bitmap, array_size);
@@ -866,50 +864,50 @@ u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info* inode){
 u32 get_array_final( int block_num, int* user_block_bitmap, int array_size){
     u8 *block_buf = (u8*)malloc(vdi.block_size);
     u32 block_array[array_size];
-    
+
     fetch_block(block_num, block_buf);
     memcpy(block_array, block_buf, sizeof(u32)*array_size);
-    
+
     if(block_array[0] == 0)
         return 0;
-    
+
     for( int i = 0; i < array_size; i++)
         user_block_bitmap[block_array[i] - 1] = 1;
-    
+
     return 0;
-} 
+}
 
 u32 get_array_1(int block_num, int *user_block_bitmap, int array_size){
     u8 *block_buf = (u8*)malloc(vdi.block_size);
     u32 block_array[array_size];
-    
+
     fetch_block(block_num, block_buf);
     memcpy(block_array, block_buf, sizeof(u32) * array_size);
-    
+
     if(block_array[0] == 0)
         return 0;
-    
+
     for( int i = 0; i < array_size; i++){
         get_array_final(block_array[i], user_block_bitmap, array_size);
     }
-    
+
     return 0;
 }
 
 u32 get_array_2(int block_num, int *user_block_bitmap, int array_size){
     u8 *block_buf = (u8*)malloc(vdi.block_size);
     u32 block_array[array_size];
-    
+
     fetch_block(block_num, block_buf);
     memcpy(block_array, block_buf, sizeof(u32) * array_size);
-    
+
     if(block_array[0] == 0)
         return 0;
-    
+
     for( int i = 0; i < array_size; i++){
         get_array_1(block_array[i], user_block_bitmap, array_size);
     }
-    
+
     return 0;
 }
 
@@ -917,13 +915,13 @@ u32 compare_block_bitmap(int block_grp_no, int *user_block_bitmap, u8* block_bit
     int start = block_grp_no * main_sb.s_blocks_per_group;
     int end = (block_grp_no + 1) * main_sb.s_blocks_per_group;
     bool error = false;
-    
-    printf("print anything \n",get_bit(block_bitmap ,i%main_sb.s_blocks_per_group));   
-        
+
+    printf("print anything \n",get_bit(block_bitmap ,i%main_sb.s_blocks_per_group));
+
     for(int i = start; i < end; i++){
-     
+
         if(user_block_bitmap[i] == get_bit(block_bitmap ,i%main_sb.s_blocks_per_group)){
-            
+
             continue;
         }
         else if (user_block_bitmap[i] == 1 && get_bit(block_bitmap ,i% main_sb.s_blocks_per_group) == 0){
@@ -935,22 +933,22 @@ u32 compare_block_bitmap(int block_grp_no, int *user_block_bitmap, u8* block_bit
             error = true;
         }
         else
-            printf("Bit value not 0 or 1\n");    
+            printf("Bit value not 0 or 1\n");
     }
-    
+
     if(error == false)
         printf("No block errors found in block group %i.\n", block_grp_no);
-    
-    return 0; 
+
+    return 0;
 }
 
 u32 compare_inode_bitmap(int block_grp_no, int *user_inode_bitmap, u8* inode_bitmap){
     int start = block_grp_no * main_sb.s_inodes_per_group;
     int end = (block_grp_no + 1) * main_sb.s_inodes_per_group;
     bool error = false;
-    
+
     for(int i = start; i < end; i++){
-        
+
         if(user_inode_bitmap[i] == get_bit(inode_bitmap ,i%main_sb.s_inodes_per_group))
             continue;
         else if (user_inode_bitmap[i] == 1 && get_bit(inode_bitmap ,i% main_sb.s_inodes_per_group) == 0){
@@ -962,11 +960,49 @@ u32 compare_inode_bitmap(int block_grp_no, int *user_inode_bitmap, u8* inode_bit
             error = true;
         }
         else
-            printf("Bit value not 0 or 1\n");               
+            printf("Bit value not 0 or 1\n");
     }
-    
+
     if(error == false)
         printf("No inode errors found in block group %i.\n", block_grp_no);
     return 0;
 }
 
+u32 superblock_check(ext2_super_block main_sb) {
+
+	if(vdi.block_size > 1024) {
+		printf("No copies of super block are available on this drive.\n");
+		return 1;
+	}
+	ext2_super_block copy;
+	s32 block_group = vdi.block_size * vdi.blocks_pg;
+
+	fetch_block(1*vdi.blocks_pg+1, &copy);
+	compare_sb(main_sb, copy);
+
+	for(int j = 3; j < 8; j+=2) {
+		for(i=j;i<vdi.no_groups; i = i * i) {
+			fetch_block(i*vdi.blocks_pg+1, &copy);
+			compare_sb(main_sb, copy);
+		}
+	}
+	return 0;
+}
+u32 bg_desc_table_check(bg_descriptor *a) {
+
+	if(vdi.block_size > 1024) {
+		printf("No copies of block group descriptor table are available on this drive.\n");
+		return 1;
+	}
+
+	bg_descriptor *b;
+	get_bg_descriptor_table(b, 1);
+	compare_bg_desc_table(a,b);
+
+	for(int j=3;j<8;j+=2) {
+		for(i=j;i<vdi.no_groups; i = i*i) {
+			get_bg_descriptor_table(b,i);
+			compare_bg_desc_table(a,b);
+		}
+	}
+}
