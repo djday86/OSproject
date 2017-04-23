@@ -60,17 +60,14 @@ s32 get_bg_descriptor_table(bg_descriptor *bg_data, int block_group_no) {
 	if(vdi.block_size > 1024 && block_group_no == 0) {
             fetch_block(1, temp);
             memcpy(bg_data, temp, sizeof(bg_descriptor) * vdi.no_groups);
-            printf("HERE:\n");
             }
 
 	else{
                 fetch_block(2 + block_group_no * vdi.block_size * vdi.blocks_pg,temp);
                 memcpy(bg_data, temp, sizeof(bg_descriptor) * vdi.no_groups);
-                printf("HEREO\n");
             }
 
 	free(temp);
-        printf("BG Descriptor read.\n");
         return 0;
 }
 
@@ -201,7 +198,6 @@ u32 get_inode(u32 inode_num, inode_info *inode ){
 
 u32 compare_sb(ext2_super_block a, ext2_super_block b) {
 
-	printf("Comparing super blocks.\n");
 	if(a.s_log_block_size < 1024) {
 		a.s_log_block_size = 1024 << a.s_log_block_size;
 	}
@@ -263,13 +259,11 @@ u32 compare_sb(ext2_super_block a, ext2_super_block b) {
 		//return -1;
 	}
 	else {
-		printf("Superblock: OK!\n");
 		return 0;
 	}
 }
 
-u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b) {
-	printf("Comparing Block Group Descriptor Tables.\n");
+u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b) { 
 
 	for(int k = 0; k < vdi.no_groups; k++) {
 
@@ -303,7 +297,6 @@ u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b) {
 	          //return -1;
 	  }
 	  else {
-	          printf("Block Group Descriptor Table: OK!\n");
 	          return 0;
 	  }
 	}
@@ -338,16 +331,16 @@ u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info* inode){
 //    memcpy(i_block_array, inode[inode_location].i_block, sizeof(inode[inode_location].i_block))
     array_size = vdi.block_size/sizeof(u32);
 
-    if(inode->.i_block[0] == 0)
+    if(inode->i_block[0] == 0)
         return 0;
 
 
     for (int i = 0; i < EXT2_N_BLOCKS; i++)
-        user_block_bitmap[inode->.i_block[i] - 1] = 1;
+        user_block_bitmap[inode->i_block[i] - 1] = 1;
 
-    get_array_final(inode->.i_block[12], user_block_bitmap, array_size);
-    get_array_1(inode->.i_block[13], user_block_bitmap, array_size);
-    get_array_2 (inode->.i_block[14], user_block_bitmap, array_size);
+    get_array_final(inode->i_block[12], user_block_bitmap, array_size);
+    get_array_1(inode->i_block[13], user_block_bitmap, array_size);
+    get_array_2 (inode->i_block[14], user_block_bitmap, array_size);
     //printf("Read Block Array Complete\n");
 }
 

@@ -26,8 +26,9 @@ s32 main(s32 argc, char *argv[]) {
         inode_info* inode;
 
 
-
-	printf("\nFile System Check:");
+				printf("\n\n------------------------------\n");
+	printf("\n      File System Check:\n\n");
+	printf("------------------------------\n");
 	printf("\n\nName of file: %s\n", argv[1]);
 
 	vdi.fd = open(argv[1], O_RDONLY);
@@ -67,14 +68,14 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 		printf("File System:  Not cleanly unmounted.  Checking for errors.\n");
 	}
 
-	if(vdi.hdr.drive_type == 1) printf("File type: Dynamic\n");
-	else printf("File type: Static\n");
+	if(vdi.hdr.drive_type == 1) printf("File type: Dynamic\n\n");
+	else printf("File type: Static\n\n");
 
 	printf("Total disk size: %llu bytes.\n", vdi.hdr.disk_size);
 
  	vdi.block_size = 1024 << main_sb.s_log_block_size;
 	vdi.blocks_pg = main_sb.s_blocks_per_group;
-	printf("The Superblock Magic Number: %x\n",main_sb.s_magic);
+	printf("The Superblock Magic Number: %x\n\n",main_sb.s_magic);
 
 	if(main_sb.s_blocks_count % main_sb.s_blocks_per_group == 0) vdi.no_groups =  main_sb.s_blocks_count / 	main_sb.s_blocks_per_group;
 	else vdi.no_groups = (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1;
@@ -82,7 +83,7 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
  	temp_block = (u8*)malloc(vdi.block_size);
 
 
-	printf("Total number of block groups: %u\n",vdi.no_groups);
+	printf("Total number of block groups: %u\n\n\n",vdi.no_groups);
 
         inodes_per_block = vdi.block_size/sizeof(inode_info);
 
@@ -101,31 +102,29 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 				bg_desc_table_check(desc_table);
 
 				dumpExt2File(&main_sb, desc_table);
-	for(i = 0; i < vdi.no_groups; i++) {
-		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
-	}
 
-        //for(i = 0; i < vdi.no_groups; i++){
+
+    /*    //for(i = 0; i < vdi.no_groups; i++){
             get_block_bitmap(i, block_bitmap);
             get_inode_bitmap(i, inode_bitmap);
            // printf("Inodes per group%i\n", main_sb.s_inodes_per_group);
             get_inode(4000, inode);
             //printf("Inode id %u\n",inode[0].i_uid);
 
-            for(int j = i * main_sb.s_inodes_per_group + 1; j < (i+1)* main_sb.s_inodes_per_group + 1; j++){
+            for(int j = i * main_sb.s_inodes_per_group + 1; j < (i+1)* main_sb.s_inodes_per_group + 1; j++) {
 
                 get_inode(j, inode);
 
-                if(inode->.i_mode == 0xC000 ){
+                if(inode->i_mode == 0xC000 ){
                     printf("file found\n");
                     file++;
                 }
 
-                if(inode->.i_mode == 0x4000){
+                if(inode->i_mode == 0x4000){
                     directory++;
                     printf("directory found\n");
                 }
-                if(inode->.i_mode != 0)
+                if(inode->i_mode != 0)
                     user_inode_bitmap[j - 1] = 1;
 
                 get_used_blocks(j, user_block_bitmap, inode);
@@ -133,15 +132,15 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
             }
             compare_block_bitmap(i, user_block_bitmap, block_bitmap);
             compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
-        }
-        printf("Number of files%i\n",file);
+
+        printf("Number of files%i\n", file); */
 
 
 	free(vdi.map);
 	free(desc_table);
 
 
-	if(close(fd) == -1) {
+	if(close(vdi.fd) == -1) {
 		printf("Error.\n");
 		return EXIT_FAILURE;
 	}
