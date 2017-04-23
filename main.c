@@ -37,6 +37,10 @@
 #define EXT2_S_IWOTH	0x0002	//others write
 #define EXT2_S_IXOTH	0x0001	//others execute
 
+//DEFINES FOR CHECKING filesystem
+#define EXT2_VALID_FS 1
+#define EXT2_ERROR_FS 2
+
 
 
 u32 i;
@@ -214,7 +218,7 @@ typedef struct {
 typedef struct {
 
 	VDI_header hdr;
-	u32 cursor,fd,start,block_size,no_groups,blocks_pg;
+	u32 cursor,fd,start,block_size,no_groups,blocks_pg,iNodesPerBlock,addrPerBlock;
 	u32 *map;
 
 } VDI_file;
@@ -329,6 +333,7 @@ u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info *inode);
 s32 vdi_read(void *buff);
 u32 superblock_check(ext2_super_block main_sb);
 u32 bg_desc_table_check(bg_descriptor *a);
+void dumpExt2File(ext2_super_block *f, bg_descriptor *bg);
 
 VDI_file vdi;
 u8 *temp_block;
@@ -396,6 +401,16 @@ s32 main(s32 argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
+	/*if(main_sb.s_state = EXT2_VALID_FS) {  //UNCOMMENT THIS BLOCK BEFORE SUBMISSION
+		printf("File System...OK!\n");
+		printf("Terminating Program.\n");
+		return EXIT_SUCCESS;
+	}*/
+
+	if(main_sb.s_state == EXT2_ERROR_FS) {
+		printf("File System:  Not cleanly unmounted.  Checking for errors.\n");
+	}
+
 	if(vdi.hdr.drive_type == 1) printf("File type: Dynamic\n");
 	else printf("File type: Static\n");
 	printf("Offset blocks: %i bytes.\n", vdi.hdr.offset_blocks);
@@ -449,6 +464,8 @@ s32 main(s32 argc, char *argv[]) {
         get_bg_descriptor_table(desc_table, 0);
 
 				bg_desc_table_check(desc_table);
+
+				dumpExt2File(&main_sb, desc_table);
 	for(i = 0; i < vdi.no_groups; i++) {
 		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
 	}
@@ -1005,4 +1022,42 @@ u32 bg_desc_table_check(bg_descriptor *a) {
 			compare_bg_desc_table(a,b);
 		}
 	}
+}
+void dumpExt2File(ext2_super_block *f, bg_descriptor *bg ) {
+	int i;
+
+	printf(	"            Blocks       Inodes\n"
+			"   Total: %10d   %10d\n"
+			"    Free: %10d   %10d\n"
+			"Reserved: %10d\n\n"
+			"First data block: %10d\n"
+			"      Block size: %10d\n"
+			"    Block groups: %10d\n"
+			"Blocks per group: %10d\n"
+			"Inodes per group: %10d\n"
+			"      GDT blocks: %10d\n"
+			"Inodes per block: %10d\n"
+			" Addrs per block: %10d\n\n",
+		f->s_blocks_count,f->s_inodes_count,
+		f->s_free_blocks_count,f->s_free_inodes_count,
+		f->s_r_blocks_count,
+		f->s_first_data_block,
+		vdi.block_size,
+		vdi.no_groups,
+		f->s_blocks_per_group,
+		f->s_inodes_per_group,
+		vdi.no_groups,
+		vdi.iNodesPerBlock,
+		vdi.addrPerBlock
+	);
+
+	printf("Group    Block map    Inode map    Inode tbl   bFree   iFree\n");
+	for (i=0;i<vdi.no_groups;i++)
+		printf("%5d   %10d   %10d   %10d   %5d   %5d\n",i,
+			bg[i].bg_block_bitmap,
+			bg[i].bg_inode_bitmap,
+			bg[i].bg_inode_table,
+			bg[i].bg_free_blocks,
+			bg[i].bg_free_inodes);
+	putchar('\n');
 }
