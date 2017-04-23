@@ -112,41 +112,41 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
             get_inode(4000, inode);
             //printf("Inode id %u\n",inode[0].i_uid);
 
-//            for(int j = i * main_sb.s_inodes_per_group + 1; j < (i+1)* main_sb.s_inodes_per_group + 1; j++){
-//
-//                get_inode(j, inode);
-//
-//                if(inode[0].i_mode == 0xC000 ){
-//                    printf("file found\n");
-//                    file++;
-//                }
-//
-//                if(inode[0].i_mode == 0x4000){
-//                    directory++;
-//                    printf("directory foudn\n");
-//                }
-//                if(inode[0].i_mode != 0)
-//                    user_inode_bitmap[j - 1] = 1;
-//
-//                get_used_blocks(j, user_block_bitmap, inode);
-//                //printf("Block bitmap %i\n", block_bitmap[0]);
-//            }
-////            compare_block_bitmap(i, user_block_bitmap, block_bitmap);
-////            compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
-//        }
-//        printf("Number of files%i\n",file);
-//
-//
-//	free(vdi.map);
-//	free(desc_table);
-//
-//
-//	if(close(fd) == -1) {
-//		printf("Error.\n");
-//		return EXIT_FAILURE;
-//	}
-//
-//
+            for(int j = i * main_sb.s_inodes_per_group + 1; j < (i+1)* main_sb.s_inodes_per_group + 1; j++){
+
+                get_inode(j, inode);
+
+                if(inode->.i_mode == 0xC000 ){
+                    printf("file found\n");
+                    file++;
+                }
+
+                if(inode->.i_mode == 0x4000){
+                    directory++;
+                    printf("directory found\n");
+                }
+                if(inode->.i_mode != 0)
+                    user_inode_bitmap[j - 1] = 1;
+
+                get_used_blocks(j, user_block_bitmap, inode);
+                //printf("Block bitmap %i\n", block_bitmap[0]);
+            }
+            compare_block_bitmap(i, user_block_bitmap, block_bitmap);
+            compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
+        }
+        printf("Number of files%i\n",file);
+
+
+	free(vdi.map);
+	free(desc_table);
+
+
+	if(close(fd) == -1) {
+		printf("Error.\n");
+		return EXIT_FAILURE;
+	}
+
+
 return EXIT_SUCCESS;
 //
 }

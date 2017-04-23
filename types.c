@@ -331,7 +331,6 @@ u8 get_bit(u8 *bitmap, int bit_num) {
 
 u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info* inode){
     u32 array_size;
-    u32 inodes_per_block = vdi.block_size/sizeof(inode_info);
 //    u32 *i_block_array = (u32*)malloc(sizeof(u32) * 15);
 //    int inode_location = (inode_num - 1) % inodes_per_block;
 //
@@ -339,16 +338,16 @@ u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info* inode){
 //    memcpy(i_block_array, inode[inode_location].i_block, sizeof(inode[inode_location].i_block))
     array_size = vdi.block_size/sizeof(u32);
 
-    if(inode[0].i_block[0] == 0)
+    if(inode->.i_block[0] == 0)
         return 0;
 
 
     for (int i = 0; i < EXT2_N_BLOCKS; i++)
-        user_block_bitmap[inode[0].i_block[i] - 1] = 1;
+        user_block_bitmap[inode->.i_block[i] - 1] = 1;
 
-    get_array_final(inode[0].i_block[12], user_block_bitmap, array_size);
-    get_array_1(inode[0].i_block[13], user_block_bitmap, array_size);
-    get_array_2 (inode[0].i_block[14], user_block_bitmap, array_size);
+    get_array_final(inode->.i_block[12], user_block_bitmap, array_size);
+    get_array_1(inode->.i_block[13], user_block_bitmap, array_size);
+    get_array_2 (inode->.i_block[14], user_block_bitmap, array_size);
     //printf("Read Block Array Complete\n");
 }
 
@@ -357,7 +356,7 @@ u32 get_array_final( int block_num, int* user_block_bitmap, int array_size){
     u32 block_array[array_size];
 
     fetch_block(block_num, block_buf);
-    memcpy(block_array, block_buf, sizeof(u32)*array_size);
+    memcpy(block_array, block_buf, sizeof(u32) * array_size);
 
     if(block_array[0] == 0)
         return 0;
