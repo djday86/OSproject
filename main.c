@@ -26,7 +26,7 @@ s32 main(s32 argc, char *argv[]) {
         inode_info* inode;
 
 
-				printf("\n\n------------------------------\n");
+	printf("\n\n------------------------------\n");
 	printf("\n      File System Check:\n\n");
 	printf("------------------------------\n");
 	printf("\n\nName of file: %s\n", argv[1]);
