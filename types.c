@@ -74,17 +74,17 @@ s32 get_bg_descriptor_table(bg_descriptor *bg_data, int block_group_no) {
         return 0;
 }
 
-u32 fetch_bg_block(void *buff, int block_grp_no){
-    if(vdi_seek(block_grp_no * vdi.block_size * vdi.blocks_pg + 1024) == -1) {
-		printf("Fetch Block: LSEEK FAILURE\n");
-		return -1;
-	}
-	if(vdi_read(buff) == -1) {
-		printf("Fetch Block: READ FAILURE\n");
-		return -1;
-	}
-    return 0;
-}
+//u32 fetch_bg_block(void *buff, int block_grp_no){
+//    if(vdi_seek(block_grp_no * vdi.block_size * vdi.blocks_pg + 1024) == -1) {
+//		printf("Fetch Block: LSEEK FAILURE\n");
+//		return -1;
+//	}
+//	if(vdi_read(buff) == -1) {
+//		printf("Fetch Block: READ FAILURE\n");
+//		return -1;
+//	}
+//    return 0;
+//}
 
 s32 fetch_block(s32 num, void *buff) {
 
@@ -194,20 +194,21 @@ u32 get_inode(u32 inode_num, inode_info *inode ){
     memcpy(inode, block_buf + (inode_num % inodes_per_block), sizeof(inode_info));
 
     //printf("Inode in group%i\n", inode_in_group);
-    printf("Inode id %d\n", inode->i_block[0]);
+    //printf("Inode id %d\n", inode->i_block[0]);
     free(block_buf);
     return 0;
 }
 
 u32 compare_sb(ext2_super_block a, ext2_super_block b) {
-
+    int block_size_a;
+    int block_size_b;
 	printf("Comparing super blocks.\n");
 	if(a.s_log_block_size < 1024) {
-		a.s_log_block_size = 1024 << a.s_log_block_size;
+		block_size_a = 1024 << a.s_log_block_size;
 	}
 
 	if(b.s_log_block_size < 1024) {
-		b.s_log_block_size = 1024 << b.s_log_block_size;
+		block_size_b = 1024 << b.s_log_block_size;
 	}
 
 	if(a.s_inodes_count != b.s_inodes_count) {
@@ -226,7 +227,7 @@ u32 compare_sb(ext2_super_block a, ext2_super_block b) {
 		printf("Discrepancy found: First data block address inaccurate\n");
 		//return -1;
 	}
-	if(a.s_log_block_size != b.s_log_block_size) {
+	if(block_size_a != block_size_b) {
 		printf("Discrepancy found: Block size inaccurate\n");
 		//return -1;
 	}
@@ -318,13 +319,14 @@ u8 get_bit(u8 *bitmap, int bit_num) {
 
     //printf("expected bitmap%i\n", (bitmap[i] & (1 << j) ));
     //printf("expected bitmap%i\n", (1 << j) );
-
+    
+    //return (bitmap[i] & (1 << j));
     if((bitmap[i] & (1 << j)) == 0){
-       // printf("bit = %i\n", 0);
+        //printf("bit = %i\n", 0);
         return 0;
     }
     else{
-       // printf("bit = %i\n", 1);
+        //printf("bit = %i\n", 1);
         return 1;
     }
 }
@@ -337,18 +339,26 @@ u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info* inode){
 //    //printf("Inode Location = %i\n",inode[inode_location].i_size);
 //    memcpy(i_block_array, inode[inode_location].i_block, sizeof(inode[inode_location].i_block))
     array_size = vdi.block_size/sizeof(u32);
-
-    if(inode->.i_block[0] == 0)
+    
+    printf("Inode: %i\n", inode_num);
+    
+    if(inode->i_block[0] == 0){
+        //printf("Inode %i is empty\n", inode_num);
         return 0;
+    }
+    
+    printf("Made it here");
+    for (int i = 0; i < 16; i++){
+        user_block_bitmap[inode->i_block[i] - 1] = 1;
+        printf("Block %i = 1\n", inode->i_block[i]);
+    }
 
-
-    for (int i = 0; i < EXT2_N_BLOCKS; i++)
-        user_block_bitmap[inode->.i_block[i] - 1] = 1;
-
-    get_array_final(inode->.i_block[12], user_block_bitmap, array_size);
-    get_array_1(inode->.i_block[13], user_block_bitmap, array_size);
-    get_array_2 (inode->.i_block[14], user_block_bitmap, array_size);
+    get_array_final(inode->i_block[12], user_block_bitmap, array_size);
+    get_array_1(inode->i_block[13], user_block_bitmap, array_size);
+    get_array_2 (inode->i_block[14], user_block_bitmap, array_size);
     //printf("Read Block Array Complete\n");
+    //free(inode);
+    return 0;
 }
 
 u32 get_array_final( int block_num, int* user_block_bitmap, int array_size){
@@ -358,11 +368,15 @@ u32 get_array_final( int block_num, int* user_block_bitmap, int array_size){
     fetch_block(block_num, block_buf);
     memcpy(block_array, block_buf, sizeof(u32) * array_size);
 
-    if(block_array[0] == 0)
+    if(block_array[0] == 0){
+        printf("Block %i is empty\n", block_num);
         return 0;
+    }
 
-    for( int i = 0; i < array_size; i++)
+    for( int i = 0; i < array_size; i++){
         user_block_bitmap[block_array[i] - 1] = 1;
+        printf("Block %i = 1\n", block_array[i]);
+    }
 
     return 0;
 }
@@ -405,22 +419,24 @@ u32 compare_block_bitmap(int block_grp_no, int *user_block_bitmap, u8* block_bit
     int start = block_grp_no * main_sb.s_blocks_per_group;
     int end = (block_grp_no + 1) * main_sb.s_blocks_per_group;
     bool error = false;
+    int bad = 0;
 
-    printf("print anything \n",get_bit(block_bitmap ,i%main_sb.s_blocks_per_group));
 
     for(int i = start; i < end; i++){
 
         if(user_block_bitmap[i] == get_bit(block_bitmap ,i%main_sb.s_blocks_per_group)){
-
+            //printf("Blocks %i match\n", i + 1);
             continue;
         }
         else if (user_block_bitmap[i] == 1 && get_bit(block_bitmap ,i% main_sb.s_blocks_per_group) == 0){
             printf("Bad 1 at block %i\n", i);
             error = true;
+            bad++;
         }
         else if(user_block_bitmap[i] == 0 && get_bit(block_bitmap ,i % main_sb.s_blocks_per_group) == 1){
             printf("Bad 2 at block %i\n", i);
             error = true;
+            bad ++;
         }
         else
             printf("Bit value not 0 or 1\n");
@@ -428,6 +444,8 @@ u32 compare_block_bitmap(int block_grp_no, int *user_block_bitmap, u8* block_bit
 
     if(error == false)
         printf("No block errors found in block group %i.\n", block_grp_no);
+    
+    printf("Bad elements in block group %i : %i\n", block_grp_no, bad);
 
     return 0;
 }
@@ -436,18 +454,23 @@ u32 compare_inode_bitmap(int block_grp_no, int *user_inode_bitmap, u8* inode_bit
     int start = block_grp_no * main_sb.s_inodes_per_group;
     int end = (block_grp_no + 1) * main_sb.s_inodes_per_group;
     bool error = false;
-
+    int bad = 0;
+    
     for(int i = start; i < end; i++){
 
-        if(user_inode_bitmap[i] == get_bit(inode_bitmap ,i%main_sb.s_inodes_per_group))
+        if(user_inode_bitmap[i] == get_bit(inode_bitmap ,i%main_sb.s_inodes_per_group)){
             continue;
+            printf("inodes  %i match\n", i + 1);
+        }
         else if (user_inode_bitmap[i] == 1 && get_bit(inode_bitmap ,i% main_sb.s_inodes_per_group) == 0){
             printf("Bad 1 at inode %i\n", i + 1);
             error = true;
+            bad++;
         }
         else if(user_inode_bitmap[i] == 0 && get_bit(inode_bitmap ,i % main_sb.s_inodes_per_group) == 1){
             printf("Bad 2 at inode %i\n", i + 1);
             error = true;
+            bad++;
         }
         else
             printf("Bit value not 0 or 1\n");
@@ -455,6 +478,8 @@ u32 compare_inode_bitmap(int block_grp_no, int *user_inode_bitmap, u8* inode_bit
 
     if(error == false)
         printf("No inode errors found in block group %i.\n", block_grp_no);
+    
+    printf("Bad elements in block group %i : %i\n", block_grp_no, bad);
     return 0;
 }
 
@@ -489,14 +514,14 @@ u32 bg_desc_table_check(bg_descriptor *a) {
 	get_bg_descriptor_table(b, 1);
 	compare_bg_desc_table(a,b);
 
-	for(int j=3;j<8;j+=2) {
-		for(i=j;i<vdi.no_groups; i = i*i) {
+	for(int j = 3;j < 8;j += 2) {
+		for(i=j;i < vdi.no_groups; i = i*i) {
 			get_bg_descriptor_table(b,i);
 			compare_bg_desc_table(a,b);
 		}
 	}
 }
-void dumpExt2File(ext2_super_block *f, bg_descriptor *bg ) {
+void dumpExt2File() {
 	int i;
 
 	printf(	"            Blocks       Inodes\n"
@@ -511,14 +536,14 @@ void dumpExt2File(ext2_super_block *f, bg_descriptor *bg ) {
 			"      GDT blocks: %10d\n"
 			"Inodes per block: %10d\n"
 			" Addrs per block: %10d\n\n",
-		f->s_blocks_count,f->s_inodes_count,
-		f->s_free_blocks_count,f->s_free_inodes_count,
-		f->s_r_blocks_count,
-		f->s_first_data_block,
+		main_sb.s_blocks_count, main_sb.s_inodes_count,
+		main_sb.s_free_blocks_count,main_sb.s_free_inodes_count,
+		main_sb.s_r_blocks_count,
+		main_sb.s_first_data_block,
 		vdi.block_size,
 		vdi.no_groups,
-		f->s_blocks_per_group,
-		f->s_inodes_per_group,
+		main_sb.s_blocks_per_group,
+		main_sb.s_inodes_per_group,
 		vdi.no_groups,
 		vdi.iNodesPerBlock,
 		vdi.addrPerBlock
@@ -527,10 +552,73 @@ void dumpExt2File(ext2_super_block *f, bg_descriptor *bg ) {
 	printf("Group    Block map    Inode map    Inode tbl   bFree   iFree\n");
 	for (i=0;i<vdi.no_groups;i++)
 		printf("%5d   %10d   %10d   %10d   %5d   %5d\n",i,
-			bg[i].bg_block_bitmap,
-			bg[i].bg_inode_bitmap,
-			bg[i].bg_inode_table,
-			bg[i].bg_free_blocks,
-			bg[i].bg_free_inodes);
+			desc_table[i].bg_block_bitmap,
+			desc_table[i].bg_inode_bitmap,
+			desc_table[i].bg_inode_table,
+			desc_table[i].bg_free_blocks,
+			desc_table[i].bg_free_inodes);
 	    putchar('\n');
   }
+u32 get_file_directory(){
+    ext2_dir_entry *curr_dir;
+    int *dir_inode_bitmap = (int*)malloc(main_sb.s_inodes_per_group * vdi.no_groups);
+    inode_info *inode = (inode_info*)malloc(sizeof(inode_info));
+    u8 *block_buf =(u8*)malloc(vdi.block_size);
+    int root_dir;
+    int next_dir;
+    
+    get_inode(2, inode);
+    root_dir = inode->i_block[0]; 
+    fetch_block(root_dir, block_buf);
+    memcpy(curr_dir, block_buf, sizeof(ext2_dir_entry));
+    
+    dir_inode_bitmap[curr_dir->inode - 1] = 1;
+    next_dir = root_dir * vdi.block_size + curr_dir->rec_len;
+    
+    while(next_dir < main_sb.s_blocks_count * vdi.block_size){
+        if(vdi_seek(next_dir) == -1) {
+            printf("LSEEK FAILURE\n");
+            return -1;
+        }
+        if(read(vdi.fd,curr_dir, sizeof(ext2_dir_entry) ) == -1) {
+            printf("READ FAILURE\n");
+            return -1;
+        }
+
+        dir_inode_bitmap[curr_dir->inode - 1];
+        next_dir = next_dir + curr_dir->rec_len;
+    }
+    compare_dir_entries(dir_inode_bitmap);
+    return 0;    
+}
+
+u32 compare_dir_entries(int *dir_inode_bitmap){
+    u8 *inode_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_inodes_per_group/8);
+    int start;
+    int end;
+    bool error = false;
+    int bad = 0;
+    
+    for(int i = 0; i < vdi.no_groups; i++){
+        get_inode_bitmap(i, inode_bitmap);
+        start = i * main_sb.s_inodes_per_group;
+        end = (i + 1) * main_sb.s_inodes_per_group;
+        for(int j = start; j < end; j++){
+            if(dir_inode_bitmap[j] == 1 && get_bit(inode_bitmap, j) == 0){
+                printf("File connected to inactive inode");
+            }
+                
+        }
+    }
+}
+//                f->s_blocks_count,f->s_inodes_count,
+//		f->s_free_blocks_count,f->s_free_inodes_count,
+//		f->s_r_blocks_count,
+//		f->s_first_data_block,
+//		vdi.block_size,
+//		vdi.no_groups,
+//		f->s_blocks_per_group,
+//		f->s_inodes_per_group,
+//		vdi.no_groups,
+//		vdi.iNodesPerBlock,
+//		vdi.addrPerBlock

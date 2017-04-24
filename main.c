@@ -6,6 +6,7 @@
 
 
 
+
 s32 main(s32 argc, char *argv[]) {
 	/*
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -94,59 +95,58 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
         block_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_blocks_per_group/8);
         inode = (inode_info*)malloc(sizeof(inode_info));
 
-				superblock_check(main_sb);
+	superblock_check(main_sb);
 
         get_bg_descriptor_table(desc_table, 0);
+        
+        printf("Inode type %i\n",inode->i_mode);
+	//bg_desc_table_check(desc_table);
 
-				bg_desc_table_check(desc_table);
-
-				dumpExt2File(&main_sb, desc_table);
+	dumpExt2File();
 	for(i = 0; i < vdi.no_groups; i++) {
 		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
 	}
 
-        //for(i = 0; i < vdi.no_groups; i++){
+        for(i = 0; i < 1; i++){
             get_block_bitmap(i, block_bitmap);
             get_inode_bitmap(i, inode_bitmap);
            // printf("Inodes per group%i\n", main_sb.s_inodes_per_group);
-            get_inode(4000, inode);
             //printf("Inode id %u\n",inode[0].i_uid);
 
-            for(int j = i * main_sb.s_inodes_per_group + 1; j < (i+1)* main_sb.s_inodes_per_group + 1; j++){
+            for(int j = i * main_sb.s_inodes_per_group + 1; j < 20; j++){
 
                 get_inode(j, inode);
 
-                if(inode->.i_mode == 0xC000 ){
+                if(inode->i_mode > 0x7fff && inode->i_mode < 0x9000 ){
                     printf("file found\n");
                     file++;
                 }
 
-                if(inode->.i_mode == 0x4000){
+                if(inode->i_mode > 0x3fff && inode->i_mode < 0x5000){
                     directory++;
                     printf("directory found\n");
                 }
-                if(inode->.i_mode != 0)
+                if(inode->i_mode != 0)
                     user_inode_bitmap[j - 1] = 1;
 
                 get_used_blocks(j, user_block_bitmap, inode);
                 //printf("Block bitmap %i\n", block_bitmap[0]);
             }
-            compare_block_bitmap(i, user_block_bitmap, block_bitmap);
-            compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
+            //compare_block_bitmap(i, user_block_bitmap, block_bitmap);
+            //compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
         }
         printf("Number of files%i\n",file);
 
 
 	free(vdi.map);
-	free(desc_table);
+	//free(desc_table);
 
 
-	if(close(fd) == -1) {
-		printf("Error.\n");
-		return EXIT_FAILURE;
-	}
+//	if(close(fd) == -1) {
+//		printf("Error.\n");
+//		return EXIT_FAILURE;
+//	}
 
 
 return EXIT_SUCCESS;
-//
 }

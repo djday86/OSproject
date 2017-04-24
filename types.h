@@ -303,6 +303,13 @@ typedef struct{
 
 } inode_info;
 
+typedef struct{
+    s32 inode;
+    s16 rec_len;
+    s16 name_len;
+    char name[];
+} ext2_dir_entry;
+
 
 u32 read_VDI_map();
 u32 get_partition_details(BootSector boot_sector);
@@ -330,7 +337,9 @@ u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info *inode);
 s32 vdi_read(void *buff);
 u32 superblock_check(ext2_super_block main_sb);
 u32 bg_desc_table_check(bg_descriptor *a);
-void dumpExt2File(ext2_super_block *f, bg_descriptor *bg);
+void dumpExt2File();
+u32 get_file_directory();
+u32 compare_dir_entries(int *dir_inode_bitmap);
 
 VDI_file vdi;
 u8 *temp_block;
