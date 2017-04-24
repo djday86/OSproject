@@ -1,7 +1,7 @@
 main: main.o types.o
 	gcc main.o types.o -o main
 
-main.o: main.c
+main.o: main.c datatypes.h
 	gcc -c main.c
 
 types.o: types.c types.h

@@ -100,7 +100,6 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 
         get_bg_descriptor_table(desc_table, 0);
         
-        printf("Inode type %i\n",inode->i_mode);
 	bg_desc_table_check(desc_table);
 
 
