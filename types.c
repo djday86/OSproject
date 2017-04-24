@@ -152,6 +152,7 @@ u32 get_inode_bitmap(u32 block_group, u8 *inode_bitmap) {
     memcpy(inode_bitmap, block_buf, sizeof(u8)* main_sb.s_inodes_per_group/8);
 
     printf("Got inode bitmap\n");
+    free(block_buf);
     return 0;
 
 }
@@ -165,6 +166,7 @@ u32 get_block_bitmap(u32 block_group, u8 *block_bitmap){
     memcpy(block_bitmap, block_buf, sizeof(u8) * main_sb.s_blocks_per_group/8);
 
     printf("Got block bitmap\n");
+    free(block_buf);
     return 0;
 
 
@@ -354,8 +356,8 @@ u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info* inode){
     get_array_final(inode->i_block[12], user_block_bitmap, array_size);
     get_array_1(inode->i_block[13], user_block_bitmap, array_size);
     get_array_2 (inode->i_block[14], user_block_bitmap, array_size);
-    //printf("Read Block Array Complete\n");
-    //free(inode);
+    printf("Read Block Array Complete\n");
+    
     return 0;
 }
 
@@ -392,7 +394,8 @@ u32 get_array_1(int block_num, int *user_block_bitmap, int array_size){
     for( int i = 0; i < array_size; i++){
         get_array_final(block_array[i], user_block_bitmap, array_size);
     }
-
+    
+    free(block_buf);
     return 0;
 }
 
@@ -409,7 +412,7 @@ u32 get_array_2(int block_num, int *user_block_bitmap, int array_size){
     for( int i = 0; i < array_size; i++){
         get_array_1(block_array[i], user_block_bitmap, array_size);
     }
-
+    free(block_buf);
     return 0;
 }
 
@@ -518,6 +521,8 @@ u32 bg_desc_table_check(bg_descriptor *a) {
 			compare_bg_desc_table(a,b);
 		}
 	}
+        free(b);
+        return 0;
 }
 void dumpExt2File() {
 	int i;
@@ -587,6 +592,7 @@ u32 get_file_directory(){
         next_dir = next_dir + curr_dir->rec_len;
     }
     compare_dir_entries(dir_inode_bitmap);
+    free(dir_inode_bitmap);
     return 0;    
 }
 
@@ -608,6 +614,8 @@ u32 compare_dir_entries(int *dir_inode_bitmap){
                 
         }
     }
+    free(inode_bitmap);
+    return 0;
 }
 //                f->s_blocks_count,f->s_inodes_count,
 //		f->s_free_blocks_count,f->s_free_inodes_count,

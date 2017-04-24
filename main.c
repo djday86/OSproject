@@ -101,7 +101,7 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
         get_bg_descriptor_table(desc_table, 0);
         
         printf("Inode type %i\n",inode->i_mode);
-	//bg_desc_table_check(desc_table);
+	bg_desc_table_check(desc_table);
 
 
 	dumpExt2File();
@@ -125,11 +125,7 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
                     file++;
                 }
 
-<<<<<<< HEAD
                 if(inode->i_mode > 0x3fff && inode->i_mode < 0x5000){
-=======
-                if(inode->i_mode == 0x4000){
->>>>>>> 74dd33eaab97ecab9197d38a68da3d318815199d
                     directory++;
                     printf("directory found\n");
                 }
@@ -138,35 +134,30 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 
                 get_used_blocks(j, user_block_bitmap, inode);
                 //printf("Block bitmap %i\n", block_bitmap[0]);
+                free(inode);
             }
-<<<<<<< HEAD
-            //compare_block_bitmap(i, user_block_bitmap, block_bitmap);
-            //compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
-        }
-        printf("Number of files%i\n",file);
-=======
             compare_block_bitmap(i, user_block_bitmap, block_bitmap);
             compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
+            free(inode_bitmap);
+            free(block_bitmap);
+        }
 
-        printf("Number of files%i\n", file); */
->>>>>>> 74dd33eaab97ecab9197d38a68da3d318815199d
+        printf("Number of files%i\n", file); 
+
 
 
 	free(vdi.map);
-	//free(desc_table);
+	free(desc_table);
+        free(user_block_bitmap);
+        free(user_inode_bitmap);
 
 
-<<<<<<< HEAD
-//	if(close(fd) == -1) {
-//		printf("Error.\n");
-//		return EXIT_FAILURE;
-//	}
-=======
+
 	if(close(vdi.fd) == -1) {
 		printf("Error.\n");
 		return EXIT_FAILURE;
 	}
->>>>>>> 74dd33eaab97ecab9197d38a68da3d318815199d
+
 
 
 return EXIT_SUCCESS;
