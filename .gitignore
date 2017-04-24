@@ -1,2 +1,6 @@
 *.vdi
 *.exe
+*.o
+*.exe.stackdump
+ext2file.c
+ext2file.h
