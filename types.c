@@ -308,6 +308,15 @@ u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b) {
 	}
 }
 
+u8 set_bit(u8 *bitmap, int bit_num){
+    int i;
+    int j;
+    bit_num = bit_num % main_sb.s_blocks_per_group;
+    i = bit_num/8;
+    j = bit_num % 8;
+    
+    return (bitmap[i] & (1 << j));
+}
 u8 get_bit(u8 *bitmap, int bit_num) {
     int i;
     int j;
@@ -318,24 +327,20 @@ u8 get_bit(u8 *bitmap, int bit_num) {
     //printf("expected bitmap%i\n", (bitmap[i] & (1 << j) ));
     //printf("expected bitmap%i\n", (1 << j) );
     
-    //return (bitmap[i] & (1 << j));
-    if((bitmap[i] & (1 << j)) == 0){
-        //printf("bit = %i\n", 0);
-        return 0;
-    }
-    else{
-        //printf("bit = %i\n", 1);
-        return 1;
-    }
+    return (bitmap[i] & (1 << j));
+//    if((bitmap[i] & (1 << j)) == 0){
+//        //printf("bit = %i\n", 0);
+//        return 0;
+//    }
+//    else{
+//        //printf("bit = %i\n", 1);
+//        return 1;
+//    }
 }
 
-u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info* inode){
+u32 get_used_blocks(int inode_num, u8* user_block_bitmap, inode_info* inode){
     u32 array_size;
-//    u32 *i_block_array = (u32*)malloc(sizeof(u32) * 15);
-//    int inode_location = (inode_num - 1) % inodes_per_block;
-//
-//    //printf("Inode Location = %i\n",inode[inode_location].i_size);
-//    memcpy(i_block_array, inode[inode_location].i_block, sizeof(inode[inode_location].i_block))
+
     array_size = vdi.block_size/sizeof(u32);
     
     printf("Inode: %i\n", inode_num);
@@ -346,10 +351,10 @@ u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info* inode){
         return 0;
     }
     
-    printf("Made it here");
+    //printf("Made it here");
     for (int i = 0; i < EXT2_N_BLOCKS; i++){
-        user_block_bitmap[inode->i_block[i] - 1] = 1;
-        printf("Block %i = 1\n", inode->i_block[i]);
+        set_bit(user_block_bitmap,inode->i_block[i] - 1);
+        printf("Block %i = 1\n", inode->i_block[i] - 1);
     }
 
 
@@ -361,7 +366,7 @@ u32 get_used_blocks(int inode_num, int* user_block_bitmap, inode_info* inode){
     return 0;
 }
 
-u32 get_array_final( int block_num, int* user_block_bitmap, int array_size){
+u32 get_array_final( int block_num, u8* user_block_bitmap, int array_size){
     u8 *block_buf = (u8*)malloc(vdi.block_size);
     u32 block_array[array_size];
 
@@ -374,14 +379,14 @@ u32 get_array_final( int block_num, int* user_block_bitmap, int array_size){
     }
 
     for( int i = 0; i < array_size; i++){
-        user_block_bitmap[block_array[i] - 1] = 1;
+        set_bit(user_block_bitmap,block_array[i] - 1);
         printf("Block %i = 1\n", block_array[i]);
     }
 
     return 0;
 }
 
-u32 get_array_1(int block_num, int *user_block_bitmap, int array_size){
+u32 get_array_1(int block_num, u8 *user_block_bitmap, int array_size){
     u8 *block_buf = (u8*)malloc(vdi.block_size);
     u32 block_array[array_size];
 
@@ -399,7 +404,7 @@ u32 get_array_1(int block_num, int *user_block_bitmap, int array_size){
     return 0;
 }
 
-u32 get_array_2(int block_num, int *user_block_bitmap, int array_size){
+u32 get_array_2(int block_num, u8 *user_block_bitmap, int array_size){
     u8 *block_buf = (u8*)malloc(vdi.block_size);
     u32 block_array[array_size];
 
@@ -416,7 +421,7 @@ u32 get_array_2(int block_num, int *user_block_bitmap, int array_size){
     return 0;
 }
 
-u32 compare_block_bitmap(int block_grp_no, int *user_block_bitmap, u8* block_bitmap){
+u32 compare_block_bitmap(int block_grp_no, u8 *user_block_bitmap, u8* block_bitmap){
     int start = block_grp_no * main_sb.s_blocks_per_group;
     int end = (block_grp_no + 1) * main_sb.s_blocks_per_group;
     bool error = false;
@@ -451,7 +456,7 @@ u32 compare_block_bitmap(int block_grp_no, int *user_block_bitmap, u8* block_bit
     return 0;
 }
 
-u32 compare_inode_bitmap(int block_grp_no, int *user_inode_bitmap, u8* inode_bitmap){
+u32 compare_inode_bitmap(int block_grp_no, u8 *user_inode_bitmap, u8* inode_bitmap){
     int start = block_grp_no * main_sb.s_inodes_per_group;
     int end = (block_grp_no + 1) * main_sb.s_inodes_per_group;
     bool error = false;
@@ -459,16 +464,16 @@ u32 compare_inode_bitmap(int block_grp_no, int *user_inode_bitmap, u8* inode_bit
     
     for(int i = start; i < end; i++){
 
-        if(user_inode_bitmap[i] == get_bit(inode_bitmap ,i%main_sb.s_inodes_per_group)){
+        if(get_bit(user_inode_bitmap, i) == get_bit(inode_bitmap ,i%main_sb.s_inodes_per_group)){
             continue;
             printf("inodes  %i match\n", i + 1);
         }
-        else if (user_inode_bitmap[i] == 1 && get_bit(inode_bitmap ,i% main_sb.s_inodes_per_group) == 0){
+        else if (get_bit(user_inode_bitmap, i) == 1 && get_bit(inode_bitmap ,i% main_sb.s_inodes_per_group) == 0){
             printf("Bad 1 at inode %i\n", i + 1);
             error = true;
             bad++;
         }
-        else if(user_inode_bitmap[i] == 0 && get_bit(inode_bitmap ,i % main_sb.s_inodes_per_group) == 1){
+        else if(get_bit(user_inode_bitmap, i) == 0 && get_bit(inode_bitmap ,i % main_sb.s_inodes_per_group) == 1){
             printf("Bad 2 at inode %i\n", i + 1);
             error = true;
             bad++;

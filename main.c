@@ -21,8 +21,8 @@ s32 main(s32 argc, char *argv[]) {
         int directory = 0;
         u8 *inode_bitmap;
         u8 *block_bitmap;
-        int *user_inode_bitmap;
-        int *user_block_bitmap;
+        u8 *user_inode_bitmap;
+        u8 *user_block_bitmap;
         u32 inodes_per_block;
         inode_info* inode;
 
@@ -89,8 +89,8 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
         inodes_per_block = vdi.block_size/sizeof(inode_info);
 
         inodes_per_block = vdi.block_size/sizeof(inode_info);
-        user_block_bitmap = (int*)malloc(sizeof(int) * main_sb.s_blocks_count);
-        user_inode_bitmap = (int*)malloc(sizeof(int) * main_sb.s_inodes_count);
+        user_block_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_blocks_per_group * vdi.no_groups);
+        user_inode_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_inodes_per_group * vdi.no_groups);
         desc_table = (bg_descriptor*)malloc(sizeof(bg_descriptor) * vdi.no_groups);
         inode_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_inodes_per_group/8);
         block_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_blocks_per_group/8);
@@ -100,7 +100,7 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 
         get_bg_descriptor_table(desc_table, 0);
         
-	bg_desc_table_check(desc_table);
+	//bg_desc_table_check(desc_table);
 
 
 	dumpExt2File();
@@ -129,11 +129,11 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
                     printf("directory found\n");
                 }
                 if(inode->i_mode != 0)
-                    user_inode_bitmap[j - 1] = 1;
+                    set_bit(user_inode_bitmap, j - 1);
 
                 get_used_blocks(j, user_block_bitmap, inode);
                 //printf("Block bitmap %i\n", block_bitmap[0]);
-                free(inode);
+                //free(inode);
             }
             compare_block_bitmap(i, user_block_bitmap, block_bitmap);
             compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
