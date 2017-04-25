@@ -136,7 +136,7 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
                 //free(inode);
             }
             compare_block_bitmap(i, user_block_bitmap, block_bitmap);
-            compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
+            //compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
             free(inode_bitmap);
             free(block_bitmap);
         }

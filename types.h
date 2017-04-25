@@ -303,12 +303,14 @@ typedef struct{
 
 } inode_info;
 
-typedef struct{
-    s32 inode;
-    s16 rec_len;
-    s16 name_len;
-    char name[];
-} ext2_dir_entry;
+typedef struct {
+	s32	inode;			/* Inode number */
+	s16	rec_len;		/* Directory entry length */
+	u8	name_len;		/* Name length */
+	u8	file_type;
+	char	name[];			/* File name, up to EXT2_NAME_LEN */
+} ext2_dir_entry_2 ;
+
 
 
 u32 read_VDI_map();

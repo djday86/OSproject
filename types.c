@@ -429,17 +429,16 @@ u32 compare_block_bitmap(int block_grp_no, u8 *user_block_bitmap, u8* block_bitm
 
 
     for(int i = start; i < end; i++){
-
-        if(user_block_bitmap[i] == get_bit(block_bitmap ,i%main_sb.s_blocks_per_group)){
-            //printf("Blocks %i match\n", i + 1);
+        if(get_bit(user_block_bitmap, i) == get_bit(block_bitmap ,i%main_sb.s_blocks_per_group)){
+            printf("Blocks %i match\n", i + 1);
             continue;
         }
-        else if (user_block_bitmap[i] == 1 && get_bit(block_bitmap ,i% main_sb.s_blocks_per_group) == 0){
+        else if (user_block_bitmap[i] > 0){
             printf("Bad 1 at block %i\n", i);
             error = true;
             bad++;
         }
-        else if(user_block_bitmap[i] == 0 && get_bit(block_bitmap ,i % main_sb.s_blocks_per_group) == 1){
+        else if(user_block_bitmap[i] == 0){
             printf("Bad 2 at block %i\n", i);
             error = true;
             bad ++;
@@ -465,15 +464,14 @@ u32 compare_inode_bitmap(int block_grp_no, u8 *user_inode_bitmap, u8* inode_bitm
     for(int i = start; i < end; i++){
 
         if(get_bit(user_inode_bitmap, i) == get_bit(inode_bitmap ,i%main_sb.s_inodes_per_group)){
-            continue;
             printf("inodes  %i match\n", i + 1);
         }
-        else if (get_bit(user_inode_bitmap, i) == 1 && get_bit(inode_bitmap ,i% main_sb.s_inodes_per_group) == 0){
+        else if (get_bit(user_inode_bitmap, i) > 0){
             printf("Bad 1 at inode %i\n", i + 1);
             error = true;
             bad++;
         }
-        else if(get_bit(user_inode_bitmap, i) == 0 && get_bit(inode_bitmap ,i % main_sb.s_inodes_per_group) == 1){
+        else if(get_bit(user_inode_bitmap, i) == 0){
             printf("Bad 2 at inode %i\n", i + 1);
             error = true;
             bad++;
@@ -567,16 +565,24 @@ void dumpExt2File() {
 			desc_table[i].bg_free_inodes);
 	    putchar('\n');
   }
-u32 get_file_directory(){
-    ext2_dir_entry *curr_dir;
+u32 traverse_directory(){
+    ext2_dir_entry_2 *curr_dir;
+    u8 * dir;
+    int dir_size;
     int *dir_inode_bitmap = (int*)malloc(main_sb.s_inodes_per_group * vdi.no_groups);
     inode_info *inode = (inode_info*)malloc(sizeof(inode_info));
-    u8 *block_buf =(u8*)malloc(vdi.block_size);
+    u8 *block_buf;
+    u8 *block_buf2 =(u8*)malloc(vdi.block_size);
+    u8 *block_buf3 =(u8*)malloc(vdi.block_size);
     int root_dir;
     int next_dir;
+    int blocks;
     
     get_inode(2, inode);
     root_dir = inode->i_block[0]; 
+    dir_size = inode->i_size;
+    block_buf = (u8*)malloc(vdi.block_size);
+    
     fetch_block(root_dir, block_buf);
     memcpy(curr_dir, block_buf, sizeof(ext2_dir_entry));
     
@@ -592,6 +598,8 @@ u32 get_file_directory(){
             printf("READ FAILURE\n");
             return -1;
         }
+        
+        
 
         dir_inode_bitmap[curr_dir->inode - 1];
         next_dir = next_dir + curr_dir->rec_len;
