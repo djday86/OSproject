@@ -565,7 +565,7 @@ void dumpExt2File() {
 			desc_table[i].bg_free_inodes);
 	    putchar('\n');
   }
-u32 traverse_directory(){
+u32 traverse_directory(int dir_inode){
     ext2_dir_entry_2 *curr_dir;
     u8 * dir;
     int dir_size;
@@ -578,13 +578,13 @@ u32 traverse_directory(){
     int next_dir;
     int blocks;
     
-    get_inode(2, inode);
+    get_inode(dir_inode, inode);
     root_dir = inode->i_block[0]; 
     dir_size = inode->i_size;
     block_buf = (u8*)malloc(vdi.block_size);
     
     fetch_block(root_dir, block_buf);
-    memcpy(curr_dir, block_buf, sizeof(ext2_dir_entry));
+    memcpy(curr_dir, block_buf, sizeof(ext2_dir_entry_2));
     
     dir_inode_bitmap[curr_dir->inode - 1] = 1;
     next_dir = root_dir * vdi.block_size + curr_dir->rec_len;
@@ -594,14 +594,21 @@ u32 traverse_directory(){
             printf("LSEEK FAILURE\n");
             return -1;
         }
-        if(read(vdi.fd,curr_dir, sizeof(ext2_dir_entry) ) == -1) {
+        if(read(vdi.fd,curr_dir, sizeof(ext2_dir_entry_2) ) == -1) {
             printf("READ FAILURE\n");
             return -1;
         }
-        
-        
-
+        get_inode(curr_dir->inode, inode);
         dir_inode_bitmap[curr_dir->inode - 1];
+        if(inode->i_mode > 0x3fff && inode->i_mode < 0x5000){
+            directory++;
+            if(inode->i_mode > 0x3fff && inode->i_mode < 0x5000){
+                    directory++;
+                    u32 traverse_directory(curr_dir->inode);
+                }
+                    
+                }
+        
         next_dir = next_dir + curr_dir->rec_len;
     }
     compare_dir_entries(dir_inode_bitmap);
