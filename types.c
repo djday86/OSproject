@@ -524,7 +524,7 @@ u32 bg_desc_table_check(bg_descriptor *a) {
 			compare_bg_desc_table(a,b);
 		}
 	}
-        free(b);
+        //free(b);
         return 0;
 }
 void dumpExt2File() {
@@ -564,10 +564,11 @@ void dumpExt2File() {
 			desc_table[i].bg_free_blocks,
 			desc_table[i].bg_free_inodes);
 	    putchar('\n');
-  }
+}
 
 u32 traverse_directory(int dir_inode_num, u8 *user_block_bitmap, u8* user_inode_bitmap){
-    ext2_dir_entry_2 *curr_dir;
+    
+    ext2_dir_entry_2 *curr_dir = (ext2_dir_entry_2*)malloc(sizeof(ext2_dir_entry_2));
     int dir_size;
     inode_info *dir_inode = (inode_info*)malloc(sizeof(inode_info));
     inode_info *inode = (inode_info*)malloc(sizeof(inode_info));
@@ -578,15 +579,16 @@ u32 traverse_directory(int dir_inode_num, u8 *user_block_bitmap, u8* user_inode_
     int blocks;
     int file;
     int directory;
-    printf("good");
-    get_inode(dir_inode_num, dir_inode);
-    root_dir = inode->i_block[0]; 
-    dir_size = inode->i_size;
-    block_buf = (u8*)malloc(vdi.block_size);
     
+    
+    get_inode(dir_inode_num, dir_inode);
+    root_dir = dir_inode->i_block[0]; 
+    dir_size = dir_inode->i_size;
+    block_buf = (u8*)malloc(vdi.block_size);
+    printf("Sent number %i\n", sizeof(ext2_dir_entry_2));
     fetch_block(root_dir, block_buf);
     memcpy(curr_dir, block_buf, sizeof(ext2_dir_entry_2));
-    
+    printf("Inode: %i\n", curr_dir->inode);
     set_bit(user_inode_bitmap,curr_dir->inode - 1);
     next_dir = root_dir * vdi.block_size + curr_dir->rec_len;
     end_dir = root_dir * vdi.block_size + dir_inode->i_size;
@@ -603,22 +605,24 @@ u32 traverse_directory(int dir_inode_num, u8 *user_block_bitmap, u8* user_inode_
         }
         
         if(strcmp(curr_dir->name,".") == 0 || strcmp(curr_dir->name,"..") == 0){
-            next_dir = next_dir + curr_dir->inode;
+            printf("Should be here");
+            next_dir = next_dir + curr_dir->rec_len;
             continue;
         }
         
         if(curr_dir->inode == 0){
            file++;
-           next_dir = next_dir + curr_dir->inode;
+           next_dir = next_dir + curr_dir->rec_len;
            continue;
         }
+        printf("good\n");
         get_inode(curr_dir->inode, inode);
         set_bit(user_inode_bitmap, curr_dir->inode - 1);
         get_used_blocks(curr_dir->inode, user_block_bitmap, inode);
         
         if(inode->i_mode > 0x3fff && inode->i_mode < 0x5000){
             directory++;
-            next_dir = next_dir + curr_dir->inode;
+            next_dir = next_dir + curr_dir->rec_len;
             traverse_directory(curr_dir->inode, user_block_bitmap, user_inode_bitmap);
         }
         else{
