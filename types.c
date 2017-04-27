@@ -172,7 +172,7 @@ u32 get_block_bitmap(u32 block_group, u8 *block_bitmap){
 
 }
 
-u32 get_inode(u32 inode_num, inode_info *inode ){
+u32 get_inode(int inode_num, inode_info *inode ){
 
     u32 group;
     u32 inode_in_group;
@@ -565,19 +565,21 @@ void dumpExt2File() {
 			desc_table[i].bg_free_inodes);
 	    putchar('\n');
   }
-u32 traverse_directory(int dir_inode){
+
+u32 traverse_directory(int dir_inode_num, u8 *user_block_bitmap, u8* user_inode_bitmap){
     ext2_dir_entry_2 *curr_dir;
-    u8 * dir;
     int dir_size;
-    int *dir_inode_bitmap = (int*)malloc(main_sb.s_inodes_per_group * vdi.no_groups);
+    inode_info *dir_inode = (inode_info*)malloc(sizeof(inode_info));
     inode_info *inode = (inode_info*)malloc(sizeof(inode_info));
     u8 *block_buf;
     int root_dir;
     int next_dir;
     int end_dir;
     int blocks;
-    
-    get_inode(dir_inode, inode);
+    int file;
+    int directory;
+    printf("good");
+    get_inode(dir_inode_num, dir_inode);
     root_dir = inode->i_block[0]; 
     dir_size = inode->i_size;
     block_buf = (u8*)malloc(vdi.block_size);
@@ -600,6 +602,11 @@ u32 traverse_directory(int dir_inode){
             return -1;
         }
         
+        if(strcmp(curr_dir->name,".") == 0 || strcmp(curr_dir->name,"..") == 0){
+            next_dir = next_dir + curr_dir->inode;
+            continue;
+        }
+        
         if(curr_dir->inode == 0){
            file++;
            next_dir = next_dir + curr_dir->inode;
@@ -607,10 +614,12 @@ u32 traverse_directory(int dir_inode){
         }
         get_inode(curr_dir->inode, inode);
         set_bit(user_inode_bitmap, curr_dir->inode - 1);
+        get_used_blocks(curr_dir->inode, user_block_bitmap, inode);
+        
         if(inode->i_mode > 0x3fff && inode->i_mode < 0x5000){
             directory++;
             next_dir = next_dir + curr_dir->inode;
-            u32 traverse_directory(curr_dir->inode);
+            traverse_directory(curr_dir->inode, user_block_bitmap, user_inode_bitmap);
         }
         else{
             file++;
@@ -638,7 +647,7 @@ u32 compare_dir_entries(int *dir_inode_bitmap){
                 
         }
     }
-    free(inode_bitmap);
+    //free(inode_bitmap);
     return 0;
 }
 //                f->s_blocks_count,f->s_inodes_count,
