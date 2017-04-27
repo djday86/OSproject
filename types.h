@@ -308,7 +308,7 @@ typedef struct {
 	s16	rec_len;		/* Directory entry length */
 	u8	name_len;		/* Name length */
 	u8	file_type;
-	char	name[];			/* File name, up to EXT2_NAME_LEN */
+	char	name[255];			/* File name, up to EXT2_NAME_LEN */
 } ext2_dir_entry_2 ;
 
 
@@ -326,7 +326,7 @@ u32 compare_sb(ext2_super_block a, ext2_super_block b);
 u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b);
 u32 get_block_bitmap(u32 bock_group, u8 *block_bitmap);
 u32 get_inode_bitmap(u32 bock_group, u8 *inode_bitmap);
-u32 get_inode(u32 inode_num, inode_info* inode );
+u32 get_inode(int inode_num, inode_info* inode );
 u8 set_bit(u8 *bitmap, int bit_num);
 u8 get_bit(u8 *bitmap, int bit_num);
 u32 get_used_blocks(int inode_num, u8 *user_block_bitmap, inode_info *inode);
@@ -341,7 +341,7 @@ s32 vdi_read(void *buff);
 u32 superblock_check(ext2_super_block main_sb);
 u32 bg_desc_table_check(bg_descriptor *a);
 void dumpExt2File();
-u32 get_file_directory();
+u32 traverse_directory(int dir_inode, u8 *user_block_bitmap, u8* user_inode_bitmap);
 u32 compare_dir_entries(int *dir_inode_bitmap);
 
 VDI_file vdi;
@@ -349,6 +349,7 @@ u8 *temp_block;
 ext2_super_block main_sb;
 bg_descriptor *desc_table;
 u32 i;
+
 
 
 

@@ -6,7 +6,3 @@ main.o: main.c datatypes.h
 
 types.o: types.c types.h
 	gcc -c types.c -o types.o
-clean:
-	rm *.o main
-
-
