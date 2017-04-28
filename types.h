@@ -349,6 +349,8 @@ u8 *temp_block;
 ext2_super_block main_sb;
 bg_descriptor *desc_table;
 u32 i;
+int file;
+int directory;
 
 
 

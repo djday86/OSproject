@@ -23,8 +23,9 @@ s32 main(s32 argc, char *argv[]) {
         u8 *user_block_bitmap;
         u32 inodes_per_block;
         inode_info* inode;
-        int file = 0;
-int directory = 0;
+        int used_files;
+        file = 0;
+        directory = 0;
 
 
 	printf("\n\n------------------------------\n");
@@ -78,16 +79,15 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 	vdi.blocks_pg = main_sb.s_blocks_per_group;
 	printf("The Superblock Magic Number: %x\n\n",main_sb.s_magic);
 
-	if(main_sb.s_blocks_count % main_sb.s_blocks_per_group == 0) vdi.no_groups =  main_sb.s_blocks_count / 	main_sb.s_blocks_per_group;
-	else vdi.no_groups = (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1;
+	if(main_sb.s_blocks_count % main_sb.s_blocks_per_group == 0)
+            vdi.no_groups =  main_sb.s_blocks_count / 	main_sb.s_blocks_per_group;
+        
+	else 
+            vdi.no_groups = (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1;
 
  	temp_block = (u8*)malloc(vdi.block_size);
-
-
 	printf("Total number of block groups: %u\n\n\n",vdi.no_groups);
-
         inodes_per_block = vdi.block_size/sizeof(inode_info);
-
         inodes_per_block = vdi.block_size/sizeof(inode_info);
         user_block_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_blocks_per_group * vdi.no_groups);
         user_inode_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_inodes_per_group * vdi.no_groups);
@@ -96,6 +96,9 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
         block_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_blocks_per_group/8);
         inode = (inode_info*)malloc(sizeof(inode_info));
 
+        for(i = 0; i < 12; i++)
+            user_inode_bitmap[i] = 1;
+        
 	superblock_check(main_sb);
 
         get_bg_descriptor_table(desc_table, 0);
