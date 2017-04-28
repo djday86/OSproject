@@ -24,6 +24,7 @@ s32 main(s32 argc, char *argv[]) {
         u32 inodes_per_block;
         inode_info* inode;
         int used_files;
+        int dir_count = 0;
         file = 0;
         directory = 0;
 
@@ -100,11 +101,14 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
             user_inode_bitmap[i] = 1;
         
 	superblock_check(main_sb);
-
+        
         get_bg_descriptor_table(desc_table, 0);
         
 	bg_desc_table_check(desc_table);
-
+        for{i = 0; i < vdi.no_groups; i++){
+            dir_count = dir_count + desc_table[i].bg_used_dirs_count
+        }
+        used_files = main_sb.s_inodes_count - main_sb.s_free_inodes_count - dir_count;
 
 //	dumpExt2File();
 //	for(i = 0; i < vdi.no_groups; i++) {
@@ -154,10 +158,15 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 //           // free(inode_bitmap);
 //           // free(block_bitmap);
 //       }
-
-        printf("Number of files%i\n", file); 
-        printf("Number of directories%i\n", directory);
-
+        if(file == used_files)
+             printf("Number of files is %i, which is the same\n", file); 
+        else
+            printf("Files not the same.");
+        
+        if(directory == dir_count)
+                   printf("Number of directories is %i\ and they are the same. n", directory);
+        else
+            printf("Number of directories not the same");
 
 
 	free(vdi.map);
