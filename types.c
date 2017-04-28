@@ -356,7 +356,7 @@ u32 get_used_blocks(int inode_num, u8* user_block_bitmap, inode_info* inode){
     
     //printf("Made it here");
     for (int i = 0; i < EXT2_N_BLOCKS; i++){
-        set_bit(user_block_bitmap,inode->i_block[i] - 1);
+        set_bit(user_block_bitmap,inode->i_block[i] - main_sb.s_first_data_block);
         printf("Block %i = 1\n", inode->i_block[i]);
     }
 
@@ -382,7 +382,7 @@ u32 get_array_final( int block_num, u8* user_block_bitmap, int array_size){
     }
 
     for( int i = 0; i < array_size; i++){
-        set_bit(user_block_bitmap,block_array[i] - 1);
+        set_bit(user_block_bitmap,block_array[i] - main_sb.s_first_data_block);
         printf("Block %i = 1\n", block_array[i]);
     }
 
@@ -390,17 +390,17 @@ u32 get_array_final( int block_num, u8* user_block_bitmap, int array_size){
 }
 
 u32 get_array_1(int block_num, u8 *user_block_bitmap, int array_size){
-    u8 *block_buf = (u8*)malloc(vdi.block_size);
-    u32 block_array[array_size];
+    u32 *block_buf = (u32*)malloc(vdi.block_size);
+    //u32 block_array[array_size];
 
     fetch_block(block_num, block_buf);
-    memcpy(block_array, block_buf, sizeof(u32) * array_size);
+    //memcpy(block_array, block_buf, sizeof(u32) * array_size);
 
-    if(block_array[0] == 0)
+    if(block_buf[0] == 0)
         return 0;
 
     for( int i = 0; i < array_size; i++){
-        get_array_final(block_array[i], user_block_bitmap, array_size);
+        get_array_final(block_buf[i], user_block_bitmap, array_size);
     }
     
     free(block_buf);
@@ -408,17 +408,17 @@ u32 get_array_1(int block_num, u8 *user_block_bitmap, int array_size){
 }
 
 u32 get_array_2(int block_num, u8 *user_block_bitmap, int array_size){
-    u8 *block_buf = (u8*)malloc(vdi.block_size);
-    u32 block_array[array_size];
+    u32 *block_buf = (u32*)malloc(vdi.block_size);
+    //u32 block_array[array_size];
 
     fetch_block(block_num, block_buf);
-    memcpy(block_array, block_buf, sizeof(u32) * array_size);
+    //memcpy(block_array, block_buf, sizeof(u32) * array_size);
 
-    if(block_array[0] == 0)
+    if(block_buf[0] == 0)
         return 0;
 
     for( int i = 0; i < array_size; i++){
-        get_array_1(block_array[i], user_block_bitmap, array_size);
+        get_array_1(block_buf[i], user_block_bitmap, array_size);
     }
     free(block_buf);
     return 0;
