@@ -23,8 +23,8 @@ s32 main(s32 argc, char *argv[]) {
         u8 *user_block_bitmap;
         u32 inodes_per_block;
         inode_info* inode;
-        int used_files;
-        int dir_count = 0;
+        int used_files = 0; //Existing files 
+        int dir_count = 0; //Existing directories
         file = 0;
         directory = 0;
 
@@ -85,7 +85,8 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 
 	else
             vdi.no_groups = (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1;
-
+        
+        //define values in ext2 struct
  	temp_block = (u8*)malloc(vdi.block_size);
 	printf("Total number of block groups: %u\n\n\n",vdi.no_groups);
         inodes_per_block = vdi.block_size/sizeof(inode_info);
@@ -109,22 +110,18 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
             dir_count = dir_count + desc_table[i].bg_used_dirs_count;
         }
         used_files = main_sb.s_inodes_count - main_sb.s_free_inodes_count - dir_count;
+        
+        //Output Filesystem information
+	dumpExt2File(used_files, dir_count );
 
-				dumpExt2File();
-
-				for(i = 0; i < vdi.no_groups; i++) {
-
-					traverse_directory(desc_table[i].bg_used_dirs_count,user_block_bitmap,user_inode_bitmap);
-
-				}
 				
-//	for(i = 0; i < vdi.no_groups; i++) {
-//		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
-//	}
+	for(i = 0; i < vdi.no_groups; i++) {
+		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
+	}
 
 //        traverse_directory(2, user_block_bitmap, user_inode_bitmap);
 //
-//        for (i = 0; i < 5; i++){
+//        for (i = 0; i < vdi.no_groups ; i++){
 //            get_inode_bitmap(i,inode_bitmap);
 //            get_block_bitmap(i,block_bitmap);
 //            compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
@@ -168,20 +165,18 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
         if(file == used_files)
              printf("Number of files is %i, which is the same\n", file);
         else
-            printf("Files not the same.\n");
+            printf("Files not the same. %i files found.\n", file);
 
         if(directory == dir_count)
                    printf("Number of directories is %i and they are the same. \n", directory);
         else
-            printf("Number of directories not the same.\n");
+            printf("Number of directories not the same. %i Directories found.\n", directory);
 
 
 	free(vdi.map);
 	free(desc_table);
-//        free(user_block_bitmap);
-//        free(user_inode_bitmap);
-
-
+        free(user_block_bitmap);
+        free(user_inode_bitmap);
 
 	if(close(vdi.fd) == -1) {
 		printf("Error.\n");

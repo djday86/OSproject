@@ -152,60 +152,6 @@ typedef struct {
 
 } VDI_header;
 
-//typedef struct {
-//	s16	i_mode;		/* File mode */
-//	s16	i_uid;		/* Low 16 bits of Owner Uid */
-//	s32	i_size;		/* Size in bytes */
-//	s32	i_atime;	/* Access time */
-//	s32	i_ctime;	/* Creation time */
-//	s32	i_mtime;	/* Modification time */
-//	s32	i_dtime;	/* Deletion Time */
-//	s16	i_gid;		/* Low 16 bits of Group Id */
-//	s16	i_links_count;	/* Links count */
-//	s32	i_blocks;	/* Blocks count */
-//	s32	i_flags;	/* File flags */
-//	union {
-//		struct {
-//			s32  l_i_reserved1;
-//		} linux1;
-//		struct {
-//			s32  h_i_translator;
-//		} hurd1;
-//		struct {
-//			s32  m_i_reserved1;
-//		} masix1;
-//	} osd1;				/* OS dependent 1 */
-//	s32	i_block[EXT2_N_BLOCKS];/* Pointers to blocks */
-//	s32	i_generation;	/* File version (for NFS) */
-//	s32	i_file_acl;	/* File ACL */
-//	s32	i_dir_acl;	/* Directory ACL */
-//	s32	i_faddr;	/* Fragment address */
-//	union {
-//		struct {
-//			u8	l_i_frag;	/* Fragment number */
-//			u8	l_i_fsize;	/* Fragment size */
-//			u16	i_pad1;
-//			s16	l_i_uid_high;	/* these 2 fields    */
-//			s16	l_i_gid_high;	/* were reserved2[0] */
-//			u32	l_i_reserved2;
-//		} linux2;
-//		struct {
-//			u8	h_i_frag;	/* Fragment number */
-//			u8	h_i_fsize;	/* Fragment size */
-//			s16	h_i_mode_high;
-//			s16	h_i_uid_high;
-//			s16	h_i_gid_high;
-//			s32	h_i_author;
-//		} hurd2;
-//		struct {
-//			u8	m_i_frag;	/* Fragment number */
-//			u8	m_i_fsize;	/* Fragment size */
-//			u16	m_pad1;
-//			u32	m_i_reserved2[2];
-//		} masix2;
-//	} osd2;				/* OS dependent 2 */
-//} ext2_inode;
-
 typedef struct {
 
 	VDI_header hdr;
@@ -315,17 +261,17 @@ s32 fetch_block( s32 num, void *buff);
 s32 fetch_inode(u32 inode_num, bg_descriptor *table, inode_info* inode );
 u32 block_buf_allocate(u32 block_size, arb_block *block_buf );
 u32 get_bg_descriptor_table(bg_descriptor *bg_data, int block_grp_no);
-u32 compare_sb(ext2_super_block a, ext2_super_block b);
-u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b);
+u32 compare_sb(ext2_super_block a, ext2_super_block b, int block_group_no);
+u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b, int block_group_no);
 u32 get_block_bitmap(u32 bock_group, u8 *block_bitmap);
 u32 get_inode_bitmap(u32 bock_group, u8 *inode_bitmap);
 u32 get_inode(int inode_num, inode_info* inode );
 u8 set_bit(u8 *bitmap, int bit_num);
 u8 get_bit(u8 *bitmap, int bit_num);
 u32 get_used_blocks(int inode_num, u8 *user_block_bitmap, inode_info *inode);
-u32 get_array_final( int block_num, u8 *user_block_bitmap, int array_size);
-u32 get_array_1(int block_num, u8 *user_block_bitmap, int array_size);
-u32 get_array_2(int block_num, u8 *user_block_bitmap, int array_size);
+u32 get_indirect_1( int block_num, u8 *user_block_bitmap);
+u32 get_indirect_2(int block_num, u8 *user_block_bitmap);
+u32 get_indirect_3(int block_num, u8 *user_block_bitmap);
 u32 compare_block_bitmap(int block_grp_no, u8 *user_block_bitmap, u8* block_bitmap);
 u32 compare_inode_bitmap(int block_grp_no, u8 *user_block_bitmap, u8* block_bitmap);
 s32 vdi_seek(u32 position);
@@ -333,9 +279,8 @@ u32 get_used_blocks(int inode_num, u8* user_block_bitmap, inode_info *inode);
 s32 vdi_read(void *buff);
 u32 superblock_check(ext2_super_block main_sb);
 u32 bg_desc_table_check(bg_descriptor *a);
-void dumpExt2File();
+void dumpExt2File(int used_files, int dir_count);
 u32 traverse_directory(int dir_inode, u8 *user_block_bitmap, u8* user_inode_bitmap);
-u32 compare_dir_entries(int *dir_inode_bitmap);
 
 VDI_file vdi;
 u8 *temp_block;
