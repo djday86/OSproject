@@ -82,8 +82,8 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 
 	if(main_sb.s_blocks_count % main_sb.s_blocks_per_group == 0)
             vdi.no_groups =  main_sb.s_blocks_count / 	main_sb.s_blocks_per_group;
-        
-	else 
+
+	else
             vdi.no_groups = (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1;
 
  	temp_block = (u8*)malloc(vdi.block_size);
@@ -99,24 +99,31 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 
         for(i = 0; i < 12; i++)
             user_inode_bitmap[i] = 1;
-        
+
 	superblock_check(main_sb);
-        
+
         get_bg_descriptor_table(desc_table, 0);
-        
+
 	bg_desc_table_check(desc_table);
-        for{i = 0; i < vdi.no_groups; i++){
-            dir_count = dir_count + desc_table[i].bg_used_dirs_count
+        for(i = 0; i < vdi.no_groups; i++){
+            dir_count = dir_count + desc_table[i].bg_used_dirs_count;
         }
         used_files = main_sb.s_inodes_count - main_sb.s_free_inodes_count - dir_count;
 
-//	dumpExt2File();
+				dumpExt2File();
+
+				for(i = 0; i < vdi.no_groups; i++) {
+
+					traverse_directory(desc_table[i].bg_used_dirs_count,user_block_bitmap,user_inode_bitmap);
+
+				}
+				
 //	for(i = 0; i < vdi.no_groups; i++) {
 //		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
 //	}
 
 //        traverse_directory(2, user_block_bitmap, user_inode_bitmap);
-//        
+//
 //        for (i = 0; i < 5; i++){
 //            get_inode_bitmap(i,inode_bitmap);
 //            get_block_bitmap(i,block_bitmap);
@@ -125,7 +132,7 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 //            //free(inode_bitmap);
 //            //free(block_bitmap);
 //        }
-//            
+//
 //        for(i = 0; i < vdi.no_groups; i++){
 //            get_block_bitmap(i, block_bitmap);
 //            get_inode_bitmap(i, inode_bitmap);
@@ -159,14 +166,14 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 //           // free(block_bitmap);
 //       }
         if(file == used_files)
-             printf("Number of files is %i, which is the same\n", file); 
+             printf("Number of files is %i, which is the same\n", file);
         else
-            printf("Files not the same.");
-        
+            printf("Files not the same.\n");
+
         if(directory == dir_count)
-                   printf("Number of directories is %i\ and they are the same. n", directory);
+                   printf("Number of directories is %i and they are the same. \n", directory);
         else
-            printf("Number of directories not the same");
+            printf("Number of directories not the same.\n");
 
 
 	free(vdi.map);
