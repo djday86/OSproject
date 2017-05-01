@@ -501,7 +501,7 @@ u32 bg_desc_table_check(bg_descriptor *a) {
         //free(b);
         return 0;
 }
-void dumpExt2File() {
+void dumpExt2File(int used_files, int dir_count) {
 	int i;
 
 	printf(	"            Blocks       Inodes\n"
