@@ -119,16 +119,16 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
 	}
 
-//        traverse_directory(2, user_block_bitmap, user_inode_bitmap);
-//
-//        for (i = 0; i < vdi.no_groups ; i++){
-//            get_inode_bitmap(i,inode_bitmap);
-//            get_block_bitmap(i,block_bitmap);
-//            compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
-//            compare_block_bitmap(i, user_block_bitmap, block_bitmap);
-//            //free(inode_bitmap);
-//            //free(block_bitmap);
-//        }
+        traverse_directory(2, user_block_bitmap, user_inode_bitmap);
+
+        for (i = 0; i < vdi.no_groups ; i++){
+            get_inode_bitmap(i,inode_bitmap);
+            get_block_bitmap(i,block_bitmap);
+            compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
+            compare_block_bitmap(i, user_block_bitmap, block_bitmap);
+            //free(inode_bitmap);
+            //free(block_bitmap);
+        }
 //
 //        for(i = 0; i < vdi.no_groups; i++){
 //            get_block_bitmap(i, block_bitmap);
