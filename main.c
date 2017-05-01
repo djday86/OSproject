@@ -19,8 +19,8 @@ s32 main(s32 argc, char *argv[]) {
         BootSector boot_sector;
         u8 *inode_bitmap;
         u8 *block_bitmap;
-        u8 *user_inode_bitmap;
-        u8 *user_block_bitmap;
+        u8 *user_inode_bitmap; //inode bitmap created by program
+        u8 *user_block_bitmap; //block bitmap created by program
         u32 inodes_per_block;
         inode_info* inode;
         int used_files = 0; //Existing files 
