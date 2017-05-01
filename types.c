@@ -360,7 +360,7 @@ u32 get_used_blocks(int inode_num, u8* user_block_bitmap, inode_info* inode){
         printf("Block %i = 1\n", inode->i_block[i]);
     }
 
-
+    //Get indirect blocks
     get_array_final(inode->i_block[12], user_block_bitmap, array_size);
     get_array_1(inode->i_block[13], user_block_bitmap, array_size);
     get_array_2 (inode->i_block[14], user_block_bitmap, array_size);
@@ -428,23 +428,23 @@ u32 compare_block_bitmap(int block_grp_no, u8 *user_block_bitmap, u8* block_bitm
     int start = block_grp_no * main_sb.s_blocks_per_group;
     int end = (block_grp_no + 1) * main_sb.s_blocks_per_group;
     bool error = false;
-    int bad = 0;
-
+    int bad1 = 0; //used block not referenced
+    int bad2 = 0; //unused block referenced
 
     for(int i = start; i < end; i++){
         if(get_bit(user_block_bitmap, i) == get_bit(block_bitmap ,i%main_sb.s_blocks_per_group)){
-            printf("Blocks %i match\n", i + 1);
+            //printf("Blocks %i match\n", i + 1);
             continue;
         }
         else if (user_block_bitmap[i] > 0){
-            printf("Bad 1 at block %i\n", i);
+            printf("Block %i is used but not referenced by an inode.\n", i + 1);
             error = true;
-            bad++;
+            bad1++;
         }
         else if(user_block_bitmap[i] == 0){
-            printf("Bad 2 at block %i\n", i);
+            printf("Unused data block %i referenced by inode\n", i + 1);
             error = true;
-            bad ++;
+            bad2 ++;
         }
         else
             printf("Bit value not 0 or 1\n");
@@ -453,7 +453,8 @@ u32 compare_block_bitmap(int block_grp_no, u8 *user_block_bitmap, u8* block_bitm
     if(error == false)
         printf("No block errors found in block group %i.\n", block_grp_no);
     
-    printf("Bad elements in block group %i : %i\n", block_grp_no, bad);
+    printf("Number of used blocks not refernced in blocks group %i : %i\n", block_grp_no, bad1);
+    printf("Number of unused blocks referenced in blocks group %i : %i\n", block_grp_no, bad1);
 
     return 0;
 }
@@ -467,15 +468,15 @@ u32 compare_inode_bitmap(int block_grp_no, u8 *user_inode_bitmap, u8* inode_bitm
     for(int i = start; i < end; i++){
 
         if(get_bit(user_inode_bitmap, i) == get_bit(inode_bitmap ,i%main_sb.s_inodes_per_group)){
-            printf("inodes  %i match\n", i + 1);
+            //printf("inodes  %i match\n", i + 1);
         }
         else if (get_bit(user_inode_bitmap, i) > 0){
-            printf("Bad 1 at inode %i\n", i + 1);
+            printf("Unused inode %i reachable from the root directory.\n", i + 1);
             error = true;
             bad++;
         }
         else if(get_bit(user_inode_bitmap, i) == 0){
-            printf("Bad 2 at inode %i\n", i + 1);
+            printf("Inode %i unreachable from the root directory.\n", i + 1);
             error = true;
             bad++;
         }

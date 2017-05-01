@@ -42,7 +42,7 @@
 #define EXT2_VALID_FS 1
 #define EXT2_ERROR_FS 2
 
-
+//super block struct
 typedef struct {
 
 	s32	s_inodes_count;		/* Inodes count */
@@ -130,6 +130,7 @@ typedef struct {
 
 } bg_descriptor;
 
+//vdi header
 typedef struct {
 
 	u8 header[0x4b];
@@ -151,67 +152,59 @@ typedef struct {
 
 } VDI_header;
 
-typedef struct {
-	s16	i_mode;		/* File mode */
-	s16	i_uid;		/* Low 16 bits of Owner Uid */
-	s32	i_size;		/* Size in bytes */
-	s32	i_atime;	/* Access time */
-	s32	i_ctime;	/* Creation time */
-	s32	i_mtime;	/* Modification time */
-	s32	i_dtime;	/* Deletion Time */
-	s16	i_gid;		/* Low 16 bits of Group Id */
-	s16	i_links_count;	/* Links count */
-	s32	i_blocks;	/* Blocks count */
-	s32	i_flags;	/* File flags */
-	union {
-		struct {
-			s32  l_i_reserved1;
-		} linux1;
-		struct {
-			s32  h_i_translator;
-		} hurd1;
-		struct {
-			s32  m_i_reserved1;
-		} masix1;
-	} osd1;				/* OS dependent 1 */
-	s32	i_block[EXT2_N_BLOCKS];/* Pointers to blocks */
-	s32	i_generation;	/* File version (for NFS) */
-	s32	i_file_acl;	/* File ACL */
-	s32	i_dir_acl;	/* Directory ACL */
-	s32	i_faddr;	/* Fragment address */
-	union {
-		struct {
-			u8	l_i_frag;	/* Fragment number */
-			u8	l_i_fsize;	/* Fragment size */
-			u16	i_pad1;
-			s16	l_i_uid_high;	/* these 2 fields    */
-			s16	l_i_gid_high;	/* were reserved2[0] */
-			u32	l_i_reserved2;
-		} linux2;
-		struct {
-			u8	h_i_frag;	/* Fragment number */
-			u8	h_i_fsize;	/* Fragment size */
-			s16	h_i_mode_high;
-			s16	h_i_uid_high;
-			s16	h_i_gid_high;
-			s32	h_i_author;
-		} hurd2;
-		struct {
-			u8	m_i_frag;	/* Fragment number */
-			u8	m_i_fsize;	/* Fragment size */
-			u16	m_pad1;
-			u32	m_i_reserved2[2];
-		} masix2;
-	} osd2;				/* OS dependent 2 */
-} ext2_inode;
-
-
-
-typedef struct {
-
-  ext2_inode *inode_entry;
-
-} inode_table;
+//typedef struct {
+//	s16	i_mode;		/* File mode */
+//	s16	i_uid;		/* Low 16 bits of Owner Uid */
+//	s32	i_size;		/* Size in bytes */
+//	s32	i_atime;	/* Access time */
+//	s32	i_ctime;	/* Creation time */
+//	s32	i_mtime;	/* Modification time */
+//	s32	i_dtime;	/* Deletion Time */
+//	s16	i_gid;		/* Low 16 bits of Group Id */
+//	s16	i_links_count;	/* Links count */
+//	s32	i_blocks;	/* Blocks count */
+//	s32	i_flags;	/* File flags */
+//	union {
+//		struct {
+//			s32  l_i_reserved1;
+//		} linux1;
+//		struct {
+//			s32  h_i_translator;
+//		} hurd1;
+//		struct {
+//			s32  m_i_reserved1;
+//		} masix1;
+//	} osd1;				/* OS dependent 1 */
+//	s32	i_block[EXT2_N_BLOCKS];/* Pointers to blocks */
+//	s32	i_generation;	/* File version (for NFS) */
+//	s32	i_file_acl;	/* File ACL */
+//	s32	i_dir_acl;	/* Directory ACL */
+//	s32	i_faddr;	/* Fragment address */
+//	union {
+//		struct {
+//			u8	l_i_frag;	/* Fragment number */
+//			u8	l_i_fsize;	/* Fragment size */
+//			u16	i_pad1;
+//			s16	l_i_uid_high;	/* these 2 fields    */
+//			s16	l_i_gid_high;	/* were reserved2[0] */
+//			u32	l_i_reserved2;
+//		} linux2;
+//		struct {
+//			u8	h_i_frag;	/* Fragment number */
+//			u8	h_i_fsize;	/* Fragment size */
+//			s16	h_i_mode_high;
+//			s16	h_i_uid_high;
+//			s16	h_i_gid_high;
+//			s32	h_i_author;
+//		} hurd2;
+//		struct {
+//			u8	m_i_frag;	/* Fragment number */
+//			u8	m_i_fsize;	/* Fragment size */
+//			u16	m_pad1;
+//			u32	m_i_reserved2[2];
+//		} masix2;
+//	} osd2;				/* OS dependent 2 */
+//} ext2_inode;
 
 typedef struct {
 
@@ -219,7 +212,7 @@ typedef struct {
 	u32 cursor,fd,start,block_size,no_groups,blocks_pg,iNodesPerBlock,addrPerBlock;
 	u32 *map;
 
-} VDI_file;
+} VDI_file; 
 
 typedef struct {
 
@@ -301,7 +294,7 @@ typedef struct{
 	} osd2;				/* OS dependent 2 */
 
 
-} inode_info;
+} inode_info; //inode struct
 
 typedef struct {
 	s32	inode;			/* Inode number */
@@ -309,11 +302,11 @@ typedef struct {
 	u8	name_len;		/* Name length */
 	u8	file_type;
 	char	name[255];			/* File name, up to EXT2_NAME_LEN */
-} ext2_dir_entry_2 ;
+} ext2_dir_entry_2 ; //directory entry
 
 
 
-u32 read_VDI_map();
+u32 read_VDI_map(); 
 u32 get_partition_details(BootSector boot_sector);
 u32 VDI_translate(u32 desired_byte);
 u32 read_into_buffer(void *buff, u32 position, u32 num_bytes);
