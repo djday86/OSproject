@@ -79,7 +79,11 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
  	vdi.block_size = 1024 << main_sb.s_log_block_size;
 	vdi.blocks_pg = main_sb.s_blocks_per_group;
 	printf("The Superblock Magic Number: %x\n\n",main_sb.s_magic);
-
+        
+        if(main_sb.s_magic != 0xef53)
+            printf("The magic number in the superblock is incorrect.\n");
+        
+        
 	if(main_sb.s_blocks_count % main_sb.s_blocks_per_group == 0)
             vdi.no_groups =  main_sb.s_blocks_count / 	main_sb.s_blocks_per_group;
 
@@ -100,11 +104,13 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 
         for(i = 0; i < 12; i++)
             user_inode_bitmap[i] = 1;
-
+        
+        //check superblock copies
 	superblock_check(main_sb);
 
         get_bg_descriptor_table(desc_table, 0);
-
+        
+        //check block group descriptor table copies
 	bg_desc_table_check(desc_table);
         for(i = 0; i < vdi.no_groups; i++){
             dir_count = dir_count + desc_table[i].bg_used_dirs_count;
@@ -113,12 +119,6 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
         
         //Output Filesystem information
 	dumpExt2File(used_files, dir_count );
-
-				
-	for(i = 0; i < vdi.no_groups; i++) {
-		printf("INFO: %i\n", desc_table[i].bg_block_bitmap);
-	}
-
         traverse_directory(2, user_block_bitmap, user_inode_bitmap);
 
         for (i = 0; i < vdi.no_groups ; i++){
@@ -126,42 +126,8 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
             get_block_bitmap(i,block_bitmap);
             compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
             compare_block_bitmap(i, user_block_bitmap, block_bitmap);
-            //free(inode_bitmap);
-            //free(block_bitmap);
         }
-//
-//        for(i = 0; i < vdi.no_groups; i++){
-//            get_block_bitmap(i, block_bitmap);
-//            get_inode_bitmap(i, inode_bitmap);
-//           // printf("Inodes per group%i\n", main_sb.s_inodes_per_group);
-//            //printf("Inode id %u\n",inode[0].i_uid);
-//
-//
-//            for(int j = i * main_sb.s_inodes_per_group + 1; j < (i + 1) * main_sb.s_inodes_per_group; j++){
-//
-//                get_inode(j, inode);
-//
-//                if(inode->i_mode > 0x7fff && inode->i_mode < 0x9000 ){
-//                    printf("file found\n");
-//                    file++;
-//                }
-//
-//                if(inode->i_mode > 0x3fff && inode->i_mode < 0x5000){
-//                    directory++;
-//                    //printf("directory found\n");
-//                }
-//                if(inode->i_mode != 0)
-//                    set_bit(user_inode_bitmap, j - 1);
-//
-//                get_used_blocks(j, user_block_bitmap, inode);
-//                //printf("Block bitmap %i\n", block_bitmap[0]);
-//                //free(inode);
-//            }
-//            compare_block_bitmap(i, user_block_bitmap, block_bitmap);
-//            compare_inode_bitmap(i, user_inode_bitmap, inode_bitmap);
-//           // free(inode_bitmap);
-//           // free(block_bitmap);
-//       }
+        
         if(file == used_files)
              printf("Number of files is %i, which is the same\n", file);
         else
@@ -177,6 +143,8 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 	free(desc_table);
         free(user_block_bitmap);
         free(user_inode_bitmap);
+        free(inode_bitmap);
+        free(block_bitmap);
 
 	if(close(vdi.fd) == -1) {
 		printf("Error.\n");

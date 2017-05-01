@@ -158,7 +158,7 @@ typedef struct {
 	u32 cursor,fd,start,block_size,no_groups,blocks_pg,iNodesPerBlock,addrPerBlock;
 	u32 *map;
 
-} VDI_file; 
+} VDI_file; //ext2 miscellaneous values
 
 typedef struct {
 
@@ -256,7 +256,6 @@ u32 read_VDI_map();
 u32 get_partition_details(BootSector boot_sector);
 u32 VDI_translate(u32 desired_byte);
 u32 read_into_buffer(void *buff, u32 position, u32 num_bytes);
-u32 fetch_bg_block(void *buff, int block_grp_no);
 s32 fetch_block( s32 num, void *buff);
 s32 fetch_inode(u32 inode_num, bg_descriptor *table, inode_info* inode );
 u32 block_buf_allocate(u32 block_size, arb_block *block_buf );
@@ -266,9 +265,9 @@ u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b, int block_group_no
 u32 get_block_bitmap(u32 bock_group, u8 *block_bitmap);
 u32 get_inode_bitmap(u32 bock_group, u8 *inode_bitmap);
 u32 get_inode(int inode_num, inode_info* inode );
-u8 set_bit(u8 *bitmap, int bit_num);
-u8 get_bit(u8 *bitmap, int bit_num);
-u32 get_used_blocks(int inode_num, u8 *user_block_bitmap, inode_info *inode);
+u8 set_bit(u8 *bitmap, int bit_num); //set bit in an array of bits
+u8 get_bit(u8 *bitmap, int bit_num); //get bit from an array of bits
+u32 get_used_blocks(int inode_num, u8 *user_block_bitmap, inode_info *inode); //check all blocks assigned to an inode
 u32 get_indirect_1( int block_num, u8 *user_block_bitmap);
 u32 get_indirect_2(int block_num, u8 *user_block_bitmap);
 u32 get_indirect_3(int block_num, u8 *user_block_bitmap);
@@ -277,8 +276,8 @@ u32 compare_inode_bitmap(int block_grp_no, u8 *user_block_bitmap, u8* block_bitm
 s32 vdi_seek(u32 position);
 u32 get_used_blocks(int inode_num, u8* user_block_bitmap, inode_info *inode);
 s32 vdi_read(void *buff);
-u32 superblock_check(ext2_super_block main_sb);
-u32 bg_desc_table_check(bg_descriptor *a);
+u32 superblock_check(ext2_super_block main_sb); //check all superblock copies
+u32 bg_desc_table_check(bg_descriptor *a); //check all block group table copies
 void dumpExt2File(int used_files, int dir_count);
 u32 traverse_directory(int dir_inode, u8 *user_block_bitmap, u8* user_inode_bitmap);
 
@@ -287,8 +286,8 @@ u8 *temp_block;
 ext2_super_block main_sb;
 bg_descriptor *desc_table;
 u32 i;
-int file;
-int directory;
+int file; //total number of files
+int directory; //total number of directories
 
 
 

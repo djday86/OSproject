@@ -45,7 +45,8 @@ u32 VDI_translate(u32 desired_byte) {
 }
 
 u32 get_partition_details(BootSector boot_sector){
-
+        
+        //find which partition entry is used
 	for (i=0;i<4;i++) {
 		if(boot_sector.partitionTable[i].type == 0x83)
 			break;
@@ -63,11 +64,9 @@ u32 get_bg_descriptor_table(bg_descriptor *bg_data, int block_group_no) {
             }
 
 	else{
-            printf("Right side\n");
                 fetch_block(2 + block_group_no * vdi.blocks_pg * vdi.block_size,temp);
                 memcpy(bg_data, temp, sizeof(bg_descriptor) * vdi.no_groups);
             }
-        printf("Made bg table\n");
 	free(temp);
         return 0;
 }
@@ -84,7 +83,6 @@ s32 fetch_block(s32 num, void *buff) {
 		printf("Fetch Block: READ FAILURE\n");
 		return -1;
 	}
-        //printf("Fetch Complete\n");
         return 0;
 }
 
@@ -165,7 +163,7 @@ u32 get_inode(int inode_num, inode_info *inode ){
 
     u32 group; //block group
     u32 inode_in_group; //inode inside the block group
-    u32 start_point;
+    u32 start_point;  //start of inode table
     u32 block_num;
     inode_info *block_buf = (inode_info*)malloc(vdi.block_size);
     u32 inodes_per_block = vdi.block_size/sizeof(inode_info);
@@ -187,7 +185,7 @@ u32 get_inode(int inode_num, inode_info *inode ){
 
 u32 compare_sb(ext2_super_block a, ext2_super_block b, int block_group_no) {
 
-    int error = 0;
+    int error = 0; //Zero if no errors
     
 	printf("Comparing super blocks.\n");
 
@@ -279,11 +277,7 @@ u32 compare_bg_desc_table(bg_descriptor *a, bg_descriptor *b, int block_group_no
 	  if(a[k].bg_pad != b[k].bg_pad) {
 	          printf("Discrepancy found in Block Group Descriptor %i: Block group pad is inaccurate.\n",k);
 	          
-	  }
-//	  else {
-//              printf("Block Group Descriptor %i is accurate\n",k);
-//	  }
-          
+	  }     
 	}
         printf("No errors found in backup descriptor table in block group%i\n", block_group_no);
         return 0;
@@ -305,31 +299,18 @@ u8 get_bit(u8 *bitmap, int bit_num) {
     i = bit_num/8;
     j = bit_num%8;
 
-    //printf("expected bitmap%i\n", (bitmap[i] & (1 << j) ));
-    //printf("expected bitmap%i\n", (1 << j) );
-
     return (bitmap[i] & (1 << j));
-//    if((bitmap[i] & (1 << j)) == 0){
-//        //printf("bit = %i\n", 0);
-//        return 0;
-//    }
-//    else{
-//        //printf("bit = %i\n", 1);
-//        return 1;
-//    }
 }
 
 u32 get_used_blocks(int inode_num, u8* user_block_bitmap, inode_info* inode){
-    printf("Inode: %i\n", inode_num);
-
     if(inode->i_block[0] == 0){
         return 0;
     }
-
+    
+    //check all direct blocks
     for (int i = 0; i < EXT2_N_BLOCKS; i++){
         if(inode->i_block[i] != 0){
             set_bit(user_block_bitmap,inode->i_block[i] - main_sb.s_first_data_block);
-            printf("Block %i = 1\n", inode->i_block[i]);
         }
     }
 
@@ -337,7 +318,6 @@ u32 get_used_blocks(int inode_num, u8* user_block_bitmap, inode_info* inode){
     get_indirect_1(inode->i_block[12], user_block_bitmap);
     get_indirect_2(inode->i_block[13], user_block_bitmap);
     get_indirect_3(inode->i_block[14], user_block_bitmap);
-    printf("Read Block Array Complete\n");
 
     return 0;
 }
@@ -348,14 +328,12 @@ u32 get_indirect_1( int block_num, u8* user_block_bitmap){
     fetch_block(block_num, block_buf);
 
     if(block_buf[0] == 0){
-        printf("Block %i is empty\n", block_num);
         return 0;
     }
 
     for( int i = 0; i < vdi.block_size/sizeof(u32); i++){
         if(block_buf[i] != 0){
             set_bit(user_block_bitmap,block_buf[i] - main_sb.s_first_data_block);
-            printf("Block %i = 1\n", block_buf[i]);
         }
     }
 
@@ -406,12 +384,12 @@ u32 compare_block_bitmap(int block_grp_no, u8 *user_block_bitmap, u8* block_bitm
             continue;
         }
         else if (user_block_bitmap[i] > 0){
-            //printf("Block %i is used but not referenced by an inode.\n", i + main_sb.s_first_data_block);
+            printf("Block %i is used but not referenced by an inode.\n", i + main_sb.s_first_data_block);
             error = true;
             bad1++;
         }
         else if(user_block_bitmap[i] == 0){
-            //printf("Unused data block %i referenced by inode\n", i + main_sb.s_first_data_block);
+            printf("Unused data block %i referenced by inode\n", i + main_sb.s_first_data_block);
             error = true;
             bad2 ++;
         }
@@ -422,8 +400,10 @@ u32 compare_block_bitmap(int block_grp_no, u8 *user_block_bitmap, u8* block_bitm
     if(error == false)
         printf("No block errors found in block group %i.\n", block_grp_no);
     
-    printf("Number of used blocks not refernced in blocks group %i : %i\n", block_grp_no, bad1);
-    printf("Number of unused blocks referenced in blocks group %i : %i\n", block_grp_no, bad2);
+    if(error == true){
+        printf("Number of used blocks not refernced in blocks group %i : %i\n", block_grp_no, bad1);
+        printf("Number of unused blocks referenced in blocks group %i : %i\n", block_grp_no, bad2);
+    }
 
     return 0;
 }
@@ -438,15 +418,14 @@ u32 compare_inode_bitmap(int block_grp_no, u8 *user_inode_bitmap, u8* inode_bitm
     for(int i = start; i < end; i++){
 
         if(get_bit(user_inode_bitmap, i) == get_bit(inode_bitmap ,i%main_sb.s_inodes_per_group)){
-            //printf("inodes  %i match\n", i + 1);
         }
         else if (get_bit(user_inode_bitmap, i) > 0){
-            //printf("Unused inode %i reachable from the root directory.\n", i + 1);
+            printf("Unused inode %i reachable from the root directory.\n", i + 1);
             error = true;
             bad1++;
         }
         else if(get_bit(user_inode_bitmap, i) == 0){
-           // printf("Inode %i unreachable from the root directory.\n", i + 1);
+            printf("Inode %i unreachable from the root directory.\n", i + 1);
             error = true;
             bad2++;
         }
@@ -456,9 +435,10 @@ u32 compare_inode_bitmap(int block_grp_no, u8 *user_inode_bitmap, u8* inode_bitm
 
     if(error == false)
         printf("No inode errors found in block group %i.\n", block_grp_no);
-
-    printf("Number of unused inodes reachable from the root in block group %i : %i\n", block_grp_no, bad1);
-    printf("Number of used inodes unreachable from root in block group %i : %i\n", block_grp_no, bad2);
+    if(error == true){
+        printf("Number of unused inodes reachable from the root in block group %i : %i\n", block_grp_no, bad1);
+        printf("Number of used inodes unreachable from root in block group %i : %i\n", block_grp_no, bad2);
+    }
     return 0;
 }
 
@@ -498,7 +478,6 @@ u32 bg_desc_table_check(bg_descriptor *a) {
 			compare_bg_desc_table(desc_table,b, i);
 		}
 	}
-        //free(b);
         return 0;
 }
 void dumpExt2File(int used_files, int dir_count) {
@@ -547,28 +526,27 @@ void dumpExt2File(int used_files, int dir_count) {
 u32 traverse_directory(int dir_inode_num, u8 *user_block_bitmap, u8* user_inode_bitmap){
 
     ext2_dir_entry_2 *curr_dir = (ext2_dir_entry_2*)malloc(sizeof(ext2_dir_entry_2));
-    int dir_size;
+    int dir_size; //size of directory
     inode_info *dir_inode = (inode_info*)malloc(sizeof(inode_info));
     inode_info *inode = (inode_info*)malloc(sizeof(inode_info));
     u8 *block_buf;
-    int root_dir;
+    int root_dir; 
     int next_dir;
-    int end_dir; 
+    int end_dir; //end of current directory
 
-
+    //get directory inode
     get_inode(dir_inode_num, dir_inode);
     root_dir = dir_inode->i_block[0];
     dir_size = dir_inode->i_size;
-    block_buf = (u8*)malloc(vdi.block_size);
-    printf("Sent number %i\n", sizeof(ext2_dir_entry_2));
+    block_buf = (u8*)malloc(vdi.block_size);  
     fetch_block(root_dir, block_buf);
     memcpy(curr_dir, block_buf, sizeof(ext2_dir_entry_2));
-    printf("Inode: %i\n", curr_dir->inode);
     set_bit(user_inode_bitmap,curr_dir->inode - 1);
     get_used_blocks(curr_dir->inode, user_block_bitmap,dir_inode);
     next_dir = root_dir * vdi.block_size + curr_dir->rec_len;
     end_dir = root_dir * vdi.block_size + dir_inode->i_size;
-
+    
+    //while inside current directory
     while(next_dir < end_dir){
         if(vdi_seek(next_dir) == -1) {
             printf("LSEEK FAILURE\n");
@@ -600,10 +578,6 @@ u32 traverse_directory(int dir_inode_num, u8 *user_block_bitmap, u8* user_inode_
             next_dir = next_dir + curr_dir->rec_len;
             traverse_directory(curr_dir->inode, user_block_bitmap, user_inode_bitmap);
         }
-//        else if(inode->i_mode > 0x7fff && inode->i_mode < 0x9000){
-//            file++;
-//            next_dir = next_dir + curr_dir->rec_len;
-//        }
         else{
             next_dir = next_dir + curr_dir->rec_len;
             file++;
