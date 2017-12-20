@@ -1,3 +1,6 @@
+//Program: File System Checker
+//Authors: Mark Freeman and Daniel Day
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "types.h"
@@ -67,7 +70,7 @@ s32 main(s32 argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-if(main_sb.s_state == EXT2_ERROR_FS) {
+        if(main_sb.s_state == EXT2_ERROR_FS) {
 		printf("File System:  Not cleanly unmounted.  Checking for errors.\n");
 	}
 
@@ -90,7 +93,7 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
 	else
             vdi.no_groups = (main_sb.s_blocks_count / main_sb.s_blocks_per_group) + 1;
         
-        //define values in ext2 struct
+        //define values for ext2 structures
  	temp_block = (u8*)malloc(vdi.block_size);
 	printf("Total number of block groups: %u\n\n\n",vdi.no_groups);
         inodes_per_block = vdi.block_size/sizeof(inode_info);
@@ -101,7 +104,8 @@ if(main_sb.s_state == EXT2_ERROR_FS) {
         inode_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_inodes_per_group/8);
         block_bitmap = (u8*)malloc(sizeof(u8) * main_sb.s_blocks_per_group/8);
         inode = (inode_info*)malloc(sizeof(inode_info));
-
+        
+        //Mark reserved inodes
         for(i = 0; i < 12; i++)
             user_inode_bitmap[i] = 1;
         

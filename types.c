@@ -384,12 +384,12 @@ u32 compare_block_bitmap(int block_grp_no, u8 *user_block_bitmap, u8* block_bitm
             continue;
         }
         else if (user_block_bitmap[i] > 0){
-            printf("Block %i is used but not referenced by an inode.\n", i + main_sb.s_first_data_block);
+            //printf("Block %i is used but not referenced by an inode.\n", i + main_sb.s_first_data_block);
             error = true;
             bad1++;
         }
         else if(user_block_bitmap[i] == 0){
-            printf("Unused data block %i referenced by inode\n", i + main_sb.s_first_data_block);
+            //printf("Unused data block %i referenced by inode\n", i + main_sb.s_first_data_block);
             error = true;
             bad2 ++;
         }
@@ -420,12 +420,12 @@ u32 compare_inode_bitmap(int block_grp_no, u8 *user_inode_bitmap, u8* inode_bitm
         if(get_bit(user_inode_bitmap, i) == get_bit(inode_bitmap ,i%main_sb.s_inodes_per_group)){
         }
         else if (get_bit(user_inode_bitmap, i) > 0){
-            printf("Unused inode %i reachable from the root directory.\n", i + 1);
+            //printf("Unused inode %i reachable from the root directory.\n", i + 1);
             error = true;
             bad1++;
         }
         else if(get_bit(user_inode_bitmap, i) == 0){
-            printf("Inode %i unreachable from the root directory.\n", i + 1);
+           // printf("Inode %i unreachable from the root directory.\n", i + 1);
             error = true;
             bad2++;
         }
@@ -482,6 +482,9 @@ u32 bg_desc_table_check(bg_descriptor *a) {
 }
 void dumpExt2File(int used_files, int dir_count) {
 	int i;
+        u32 inodes_per_block = vdi.block_size/sizeof(inode_info);
+        u32 addr_per_block = vdi.block_size/sizeof(u32);
+        u32 file_system_size = main_sb.s_blocks_count * vdi.block_size;
 
 	printf(	"            Blocks       Inodes\n"
 			"   Total: %10d   %10d\n"
@@ -492,11 +495,11 @@ void dumpExt2File(int used_files, int dir_count) {
 			"    Block groups: %10d\n"
 			"Blocks per group: %10d\n"
 			"Inodes per group: %10d\n"
-			"      GDT blocks: %10d\n"
 			"Inodes per block: %10d\n"
 			" Addrs per block: %10d\n\n"
                         "Number of files: %10d\n\n"
-                        "Number of directories: %10d\n\n",
+                        "Number of directories: %10d\n\n"
+                        "File System Size: %10d\n\n",
 		main_sb.s_blocks_count, main_sb.s_inodes_count,
 		main_sb.s_free_blocks_count,main_sb.s_free_inodes_count,
 		main_sb.s_r_blocks_count,
@@ -505,11 +508,11 @@ void dumpExt2File(int used_files, int dir_count) {
 		vdi.no_groups,
 		main_sb.s_blocks_per_group,
 		main_sb.s_inodes_per_group,
-		vdi.no_groups,
-		vdi.iNodesPerBlock,
-		vdi.addrPerBlock,
+		inodes_per_block,
+		addr_per_block,
                 used_files,
-                dir_count
+                dir_count,
+                file_system_size
 	);
 
 	printf("Group    Block map    Inode map    Inode tbl   bFree   iFree\n");
@@ -559,7 +562,6 @@ u32 traverse_directory(int dir_inode_num, u8 *user_block_bitmap, u8* user_inode_
         }
 
         if(strcmp(curr_dir->name,".") == 0 || strcmp(curr_dir->name,"..") == 0){
-            printf("Should be here");
             next_dir = next_dir + curr_dir->rec_len;
             continue;
         }
@@ -568,7 +570,6 @@ u32 traverse_directory(int dir_inode_num, u8 *user_block_bitmap, u8* user_inode_
            next_dir = next_dir + curr_dir->rec_len;
            continue;
         }
-        printf("good\n");
         get_inode(curr_dir->inode, inode);
         set_bit(user_inode_bitmap, curr_dir->inode - 1);
         get_used_blocks(curr_dir->inode, user_block_bitmap, inode);
